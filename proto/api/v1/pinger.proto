@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package internal;
+
+option go_package = "pkg/proto/api/v1/pb";
+
+// PingRequest ...
+message PingRequest {}
+
+// PingResponse ...
+message PingResponse {}
+
+// Godo ...
+service Godo {
+  // Ping ...
+  rpc Ping(PingRequest) returns (PingResponse);
+}
