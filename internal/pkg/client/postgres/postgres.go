@@ -21,11 +21,6 @@ import (
 	"github.com/vlad-marlo/godo/internal/config"
 )
 
-var (
-	// cli is a singleton object of postgres client.
-	cli *Client
-)
-
 // Client object gives access to db connection.
 type Client struct {
 	pool   *pgxpool.Pool
@@ -65,7 +60,7 @@ func New(lc fx.Lifecycle, log *zap.Logger, cfg *config.Config) *Client {
 		log.Fatal(fmt.Sprintf("postgres: init pgxpool: %v", err))
 	}
 
-	cli = &Client{
+	cli := &Client{
 		pool:   pool,
 		logger: log,
 	}
@@ -107,7 +102,7 @@ func (c *Client) Close() {
 // L returns prepared logger object.
 func (c *Client) L() *zap.Logger {
 	if c == nil {
-		return nil
+		return zap.L()
 	}
 	return c.logger
 }
@@ -115,6 +110,7 @@ func (c *Client) L() *zap.Logger {
 // TestClient ...
 func TestClient(t testing.TB) *Client {
 	t.Helper()
+	//TODO: захардкожена переменная окружения мб потом поменять
 	dbUri := os.Getenv("TEST_DB_URI")
 	pool, err := pgxpool.New(context.Background(), dbUri)
 	require.NoError(t, err)

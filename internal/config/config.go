@@ -228,11 +228,11 @@ func (c *Config) ParseFromFile(file string) error {
 	if errors.Is(err, os.ErrNotExist) || errors.Is(err, os.ErrPermission) {
 		return nil
 	} else if err != nil {
-		return nil
+		return fmt.Errorf("open file: %w", err)
 	}
 
 	defer func() {
-		if err := f.Close(); err != nil {
+		if err = f.Close(); err != nil {
 			zap.L().Error("os: file: close", zap.Error(err))
 		}
 

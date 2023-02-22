@@ -106,9 +106,9 @@ func ValidateConfig(cfg *config.Config, log *zap.Logger) error {
 // ServiceFactory return right service for server. If server is running on development mode than factory will return
 // development service instead of production.
 func ServiceFactory(store store.Store, cfg *config.Config, log *zap.Logger) service.Interface {
-	if cfg.Server.IsDev {
-		// create development server if necessary.
-	}
+	//if cfg.Server.IsDev {
+	// create development server if necessary.
+	//}
 	return production.New(store, cfg, log)
 }
 

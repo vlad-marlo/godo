@@ -17,7 +17,7 @@ func TestClient_L_NotNil(t *testing.T) {
 
 func TestClient_L_Nil(t *testing.T) {
 	var cli *Client
-	assert.Nil(t, cli.L())
+	assert.Equal(t, zap.NewNop(), cli.L())
 }
 
 func TestClient_P_NotNil(t *testing.T) {

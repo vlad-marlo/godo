@@ -33,11 +33,13 @@ func TestServer_RegisterUser_Positive(t *testing.T) {
 	s := TestServer(t, srv)
 
 	r := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(body))
+	defer assert.NoError(t, r.Body.Close())
 	w := httptest.NewRecorder()
 
 	s.RegisterUser(w, r)
 
 	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
 
 	assert.Contains(t, res.Header.Get("content-type"), "application/json")
 	assert.Equal(t, http.StatusCreated, res.StatusCode)
@@ -75,11 +77,13 @@ func TestServer_RegisterUser_Negative(t *testing.T) {
 			s := TestServer(t, srv)
 
 			r := httptest.NewRequest(http.MethodPost, "/", body)
+			defer assert.NoError(t, r.Body.Close())
 			w := httptest.NewRecorder()
 
 			s.RegisterUser(w, r)
 
 			res := w.Result()
+			defer assert.NoError(t, res.Body.Close())
 			fErr, ok := tc.err.(*fielderr.Error)
 			if !ok {
 				assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
@@ -89,18 +93,10 @@ func TestServer_RegisterUser_Negative(t *testing.T) {
 			if fErr.Data == nil {
 				fErr.Data = http.StatusText(fErr.CodeHTTP())
 			}
-			expected, err := json.Marshal(fErr.Data)
+			var expected []byte
+			expected, err = json.Marshal(fErr.Data)
 			require.NoError(t, err)
 			assert.JSONEq(t, string(expected), w.Body.String())
 		})
 	}
 }
-
-//func TestServer_RegisterUser_NilBody(t *testing.T) {
-//	s := TestServer(t, nil)
-//	r := httptest.NewRequest(http.MethodPost, "/", nil)
-//	w := httptest.NewRecorder()
-//	s.RegisterUser(w, r)
-//	assert.Equal(t, http.StatusText(http.StatusInternalServerError), w.Body.String())
-//	assert.Equal(t, http.StatusInternalServerError, w.Code)
-//}

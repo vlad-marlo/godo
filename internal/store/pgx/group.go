@@ -29,6 +29,7 @@ func NewGroupRepository(cli Client) *GroupRepository {
 	}
 }
 
+// Exists ...
 func (repo *GroupRepository) Exists(ctx context.Context, id string) (ok bool) {
 	_ = repo.pool.QueryRow(
 		ctx,
@@ -38,6 +39,7 @@ func (repo *GroupRepository) Exists(ctx context.Context, id string) (ok bool) {
 	return ok
 }
 
+// Create ...
 func (repo *GroupRepository) Create(ctx context.Context, group *model.Group) error {
 	if err := repo.pool.QueryRow(
 		ctx,
@@ -69,6 +71,7 @@ func (repo *GroupRepository) Create(ctx context.Context, group *model.Group) err
 	return nil
 }
 
+// Get return group with provided id
 func (repo *GroupRepository) Get(ctx context.Context, id string) (*model.Group, error) {
 	g := new(model.Group)
 
