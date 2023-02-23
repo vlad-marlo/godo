@@ -15,19 +15,20 @@ import (
 	passwordvalidator "github.com/wagslane/go-password-validator"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
+	"net/mail"
 	"time"
 )
 
 const (
-	simplePasswordErrText    = "password is too simple"
-	userAlreadyExistsErrText = "user with provided id already exists"
-	internalErrMsg           = "internal error"
-	notFoundErrMsg           = "not found"
-	unauthorizedErrMsg       = "not authorized"
+	simplePasswordErrText = "password is too simple"
+	internalErrMsg        = "internal error"
+	notFoundErrMsg        = "not found"
+	unauthorizedErrMsg    = "not authorized"
+	badRequestMsg         = "bad request"
 )
 
 // RegisterUser ...
-func (s *Service) RegisterUser(ctx context.Context, username string, password string, isAdmin bool) (*model.User, error) {
+func (s *Service) RegisterUser(ctx context.Context, email, password string) (*model.User, error) {
 	// validate password.
 	if err := passwordvalidator.Validate(password, s.cfg.Auth.PasswordDifficult); err != nil {
 		return nil, fielderr.New(
@@ -39,8 +40,23 @@ func (s *Service) RegisterUser(ctx context.Context, username string, password st
 			fielderr.CodeBadRequest,
 		)
 	}
+
+	// check email.
+	ea, err := mail.ParseAddress(email)
+	if err != nil {
+		return nil, fielderr.New(
+			badRequestMsg,
+			map[string]any{
+				"email": "pass valid email address",
+			},
+			fielderr.CodeConflict,
+		)
+	}
+
 	// take hash of password.
-	pass, err := bcrypt.GenerateFromPassword(
+	// TODO: fix bug with too long password (split password to parts by length and encrypt them separately).
+	var pass []byte
+	pass, err = bcrypt.GenerateFromPassword(
 		[]byte(s.cfg.Server.Salt+password),
 		bcrypt.DefaultCost,
 	)
@@ -50,6 +66,7 @@ func (s *Service) RegisterUser(ctx context.Context, username string, password st
 			map[string]any{
 				"password": password,
 				"msg":      "password is too long",
+				"error":    err.Error(),
 			},
 			fielderr.CodeBadRequest,
 			zap.Error(fmt.Errorf("bcrypt: generate from password: %w", err)),
@@ -57,28 +74,15 @@ func (s *Service) RegisterUser(ctx context.Context, username string, password st
 	}
 
 	u := &model.User{
-		ID:      uuid.New(),
-		Name:    username,
-		Pass:    string(pass),
-		IsAdmin: isAdmin,
+		ID:    uuid.New(),
+		Pass:  string(pass),
+		Email: ea.Address,
 	}
 	if err = s.store.User().Create(ctx, u); err != nil {
 		if errors.Is(err, store.ErrUserAlreadyExists) {
-			return nil, fielderr.New(
-				userAlreadyExistsErrText,
-				map[string]any{
-					"username": username,
-					"error":    err.Error(),
-				},
-				fielderr.CodeConflict,
-			)
+			return nil, service.ErrLoginAlreadyInUse
 		}
-		return nil, fielderr.New(
-			internalErrMsg,
-			nil,
-			fielderr.CodeInternal,
-			zap.Error(fmt.Errorf("user create: %w", err)),
-		)
+		return nil, service.ErrInternal
 	}
 	u.Pass = ""
 
@@ -86,8 +90,8 @@ func (s *Service) RegisterUser(ctx context.Context, username string, password st
 }
 
 // LoginUserJWT ...
-func (s *Service) LoginUserJWT(ctx context.Context, username, password string) (*model.CreateJWTResponse, error) {
-	u, err := s.store.User().GetByName(ctx, username)
+func (s *Service) LoginUserJWT(ctx context.Context, email, password string) (*model.CreateJWTResponse, error) {
+	u, err := s.store.User().GetByEmail(ctx, email)
 	if err != nil {
 		s.log.Error("get user by name", zap.Error(err))
 		if errors.Is(err, store.ErrNotFound) {

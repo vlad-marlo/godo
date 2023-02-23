@@ -47,7 +47,7 @@ func (repo *GroupRepository) Create(ctx context.Context, group *model.Group) err
 		group.ID,
 		group.Name,
 		group.Description,
-		group.CreatedBy,
+		group.Owner,
 	).Scan(&group.CreatedAt); err != nil {
 
 		repo.log.Debug(
@@ -84,7 +84,7 @@ func (repo *GroupRepository) Get(ctx context.Context, id string) (*model.Group, 
 		&g.Name,
 		&g.Description,
 		&g.CreatedAt,
-		&g.CreatedBy,
+		&g.Owner,
 	); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, store.ErrNotFound

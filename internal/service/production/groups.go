@@ -18,7 +18,7 @@ func (s *Service) CreateGroup(ctx context.Context, user, name, description strin
 	grp := &model.Group{
 		ID:          uuid.New(),
 		Name:        name,
-		CreatedBy:   userID,
+		Owner:       userID,
 		Description: description,
 	}
 

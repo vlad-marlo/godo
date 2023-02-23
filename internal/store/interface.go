@@ -10,7 +10,7 @@ import (
 
 type UserRepository interface {
 	Create(ctx context.Context, u *model.User) error
-	GetByName(ctx context.Context, username string) (*model.User, error)
+	GetByEmail(ctx context.Context, username string) (*model.User, error)
 	Exists(ctx context.Context, user string) bool
 }
 

@@ -10,6 +10,11 @@ var (
 	ErrLoginAlreadyInUse = fielderr.New(
 		"login already in use",
 		map[string]string{"login": "already in use"},
-		fielderr.CodeBadRequest,
+		fielderr.CodeConflict,
+	)
+	ErrInternal = fielderr.New(
+		"internal server error",
+		"internal server error",
+		fielderr.CodeInternal,
 	)
 )

@@ -11,10 +11,9 @@ import (
 
 var (
 	TestUser1 = &model.User{
-		ID:      uuid.New(),
-		Name:    "test user 1",
-		Pass:    "test password",
-		IsAdmin: false,
+		ID:    uuid.New(),
+		Pass:  "test password",
+		Email: "example@ex.com",
 	}
 )
 

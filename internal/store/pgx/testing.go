@@ -23,31 +23,31 @@ var _dbTables = []string{"users", "groups"}
 
 var (
 	TestUser1 = &model.User{
-		ID:   uuid.New(),
-		Name: "first_user",
-		Pass: "second_password",
+		ID:    uuid.New(),
+		Pass:  "second_password",
+		Email: "testemail1@xd.ru",
 	}
 	TestUser2 = &model.User{
-		ID:   uuid.New(),
-		Name: "second_user",
-		Pass: "some_passwords",
+		ID:    uuid.New(),
+		Pass:  "some_passwords",
+		Email: "good_email2@example.com",
 	}
 	TestUser3 = &model.User{
-		ID:   uuid.New(),
-		Name: "first_user",
-		Pass: "some_password",
+		ID:    uuid.New(),
+		Pass:  "some_password",
+		Email: TestUser1.Email,
 	}
 	TestGroup1 = &model.Group{
 		ID:          uuid.New(),
 		Name:        "test group",
-		CreatedBy:   TestUser1.ID,
+		Owner:       TestUser1.ID,
 		Description: "test description",
 		CreatedAt:   time.Now(),
 	}
 	TestGroup2 = &model.Group{
 		ID:          uuid.New(),
 		Name:        "another test group",
-		CreatedBy:   TestUser1.ID,
+		Owner:       TestUser1.ID,
 		Description: "another description",
 		CreatedAt:   time.Now(),
 	}
@@ -104,7 +104,7 @@ func testGroupUser(t testing.TB) (*GroupRepository, *UserRepository, func()) {
 
 	return grp, usr, func() {
 		defer cli.Close()
-		_, err := cli.P().Exec(context.Background(), fmt.Sprintf(`TRUNCATE groups, users CASCADE;`))
+		_, err := cli.P().Exec(context.Background(), "TRUNCATE users, groups CASCADE;")
 		assert.NoError(t, err)
 	}
 }

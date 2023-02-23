@@ -95,16 +95,16 @@ func (mr *MockServiceMockRecorder) Ping(ctx interface{}) *gomock.Call {
 }
 
 // RegisterUser mocks base method.
-func (m *MockService) RegisterUser(ctx context.Context, user, password string, isAdmin bool) (*model.User, error) {
+func (m *MockService) RegisterUser(ctx context.Context, email, password string) (*model.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterUser", ctx, user, password, isAdmin)
+	ret := m.ctrl.Call(m, "RegisterUser", ctx, email, password)
 	ret0, _ := ret[0].(*model.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RegisterUser indicates an expected call of RegisterUser.
-func (mr *MockServiceMockRecorder) RegisterUser(ctx, user, password, isAdmin interface{}) *gomock.Call {
+func (mr *MockServiceMockRecorder) RegisterUser(ctx, email, password interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterUser", reflect.TypeOf((*MockService)(nil).RegisterUser), ctx, user, password, isAdmin)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterUser", reflect.TypeOf((*MockService)(nil).RegisterUser), ctx, email, password)
 }

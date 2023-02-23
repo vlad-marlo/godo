@@ -44,7 +44,7 @@ func (s *Server) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := s.srv.RegisterUser(r.Context(), req.Username, req.Password, false)
+	u, err := s.srv.RegisterUser(r.Context(), req.Email, req.Password)
 	if err != nil {
 		if fieldErr, ok := err.(*fielderr.Error); ok {
 			s.respond(w, fieldErr.CodeHTTP(), fieldErr.Data, ReqIDField(reqID))
@@ -82,7 +82,7 @@ func (s *Server) LoginJWT(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := s.srv.LoginUserJWT(r.Context(), req.Username, req.Password)
+	u, err := s.srv.LoginUserJWT(r.Context(), req.Email, req.Password)
 	if err != nil {
 		if fdErr, ok := err.(*fielderr.Error); ok {
 			s.respond(w, fdErr.CodeHTTP(), fdErr.Data, ReqIDField(reqID), zap.Error(fdErr))

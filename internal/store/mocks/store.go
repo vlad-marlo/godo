@@ -64,19 +64,19 @@ func (mr *MockUserRepositoryMockRecorder) Exists(ctx, user interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockUserRepository)(nil).Exists), ctx, user)
 }
 
-// GetByName mocks base method.
-func (m *MockUserRepository) GetByName(ctx context.Context, username string) (*model.User, error) {
+// GetByEmail mocks base method.
+func (m *MockUserRepository) GetByEmail(ctx context.Context, username string) (*model.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetByName", ctx, username)
+	ret := m.ctrl.Call(m, "GetByEmail", ctx, username)
 	ret0, _ := ret[0].(*model.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetByName indicates an expected call of GetByName.
-func (mr *MockUserRepositoryMockRecorder) GetByName(ctx, username interface{}) *gomock.Call {
+// GetByEmail indicates an expected call of GetByEmail.
+func (mr *MockUserRepositoryMockRecorder) GetByEmail(ctx, username interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByName", reflect.TypeOf((*MockUserRepository)(nil).GetByName), ctx, username)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByEmail", reflect.TypeOf((*MockUserRepository)(nil).GetByEmail), ctx, username)
 }
 
 // MockGroupRepository is a mock of GroupRepository interface.

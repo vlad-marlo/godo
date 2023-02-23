@@ -9,33 +9,31 @@ type (
 	User struct {
 		// ID is user uuid.
 		ID uuid.UUID `json:"id"`
-		// Name is username.
-		Name string `json:"username"`
+		// Email is string field of user's email addr.
+		Email string `json:"email"`
 		// Pass is encrypted user password.
 		Pass string `json:"-"`
-		// IsAdmin if true then user will have all permissions.
-		IsAdmin bool `json:"-"`
 	}
 	// RegisterUserRequest ...
 	RegisterUserRequest struct {
-		// Username is username of user.
-		Username string `json:"username"`
+		// Email is user email
+		Email string `json:"email"`
 		// Password is password string
 		Password string `json:"password"`
 	}
 
 	// LoginUserRequest ...
 	LoginUserRequest struct {
-		// Username is username of user.
-		Username string `json:"username"`
+		// Email is user email
+		Email string `json:"email"`
 		// Password is password of user.
 		Password string `json:"password"`
 	}
 
 	// CreateUserResponse ...
 	CreateUserResponse struct {
-		ID       uuid.UUID `json:"id"`
-		Username string    `json:"username"`
+		ID    uuid.UUID `json:"id"`
+		Email string    `json:"email"`
 	}
 
 	// CreateJWTResponse is request object which will return to user on token create.

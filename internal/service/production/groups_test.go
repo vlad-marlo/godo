@@ -19,7 +19,7 @@ func TestService_CreateGroup_Positive(t *testing.T) {
 	str := mocks.NewMockStore(ctrl)
 	grp := mocks.NewMockGroupRepository(ctrl)
 	grp.EXPECT().Create(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, g *model.Group) error {
-		assert.Equal(t, TestGroup1.CreatedBy, g.CreatedBy)
+		assert.Equal(t, TestGroup1.Owner, g.Owner)
 		return nil
 	})
 
@@ -29,7 +29,7 @@ func TestService_CreateGroup_Positive(t *testing.T) {
 
 	ctx := context.Background()
 
-	resp, err := srv.CreateGroup(ctx, TestGroup1.CreatedBy.String(), TestGroup1.Name, TestGroup1.Description)
+	resp, err := srv.CreateGroup(ctx, TestGroup1.Owner.String(), TestGroup1.Name, TestGroup1.Description)
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 
@@ -47,7 +47,7 @@ func TestService_CreateGroup_Negative_ErrGroupAlreadyExists(t *testing.T) {
 
 	srv := testService(t, str)
 
-	resp, err := srv.CreateGroup(context.Background(), TestGroup1.CreatedBy.String(), TestGroup1.Name, TestGroup1.Description)
+	resp, err := srv.CreateGroup(context.Background(), TestGroup1.Owner.String(), TestGroup1.Name, TestGroup1.Description)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 	fErr, ok := err.(*fielderr.Error)
@@ -81,7 +81,7 @@ func TestService_CreateGroup_BadRequest(t *testing.T) {
 	str.EXPECT().Group().Return(grp)
 
 	srv := testService(t, str)
-	resp, err := srv.CreateGroup(context.Background(), TestGroup1.CreatedBy.String(), TestGroup1.Name, TestGroup1.Description)
+	resp, err := srv.CreateGroup(context.Background(), TestGroup1.Owner.String(), TestGroup1.Name, TestGroup1.Description)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 

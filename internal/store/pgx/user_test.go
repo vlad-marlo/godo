@@ -58,20 +58,20 @@ func TestUserRepository_GetByName(t *testing.T) {
 	s, td := testUsers(t)
 	defer td()
 
-	u, err := s.GetByName(ctx, TestUser1.Name)
+	u, err := s.GetByEmail(ctx, TestUser1.Email)
 	assert.Nil(t, u)
 	assert.ErrorIs(t, err, store.ErrNotFound)
 
 	assert.False(t, s.Exists(ctx, TestUser1.ID.String()))
 
 	assert.NoError(t, s.Create(ctx, TestUser1))
-	u, err = s.GetByName(ctx, TestUser1.Name)
+	u, err = s.GetByEmail(ctx, TestUser1.Email)
 
 	assert.Equal(t, TestUser1, u)
 	assert.NoError(t, err)
 	assert.True(t, s.Exists(ctx, TestUser1.ID.String()))
 
-	u, err = s.GetByName(ctx, TestUser2.Name)
+	u, err = s.GetByEmail(ctx, TestUser2.Email)
 	assert.Nil(t, u)
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, store.ErrNotFound)
@@ -83,7 +83,7 @@ func TestUserRepository_GetByName_Negative(t *testing.T) {
 	cli := BadCli(t)
 	userRepository := NewUserRepository(cli)
 
-	u, err := userRepository.GetByName(context.Background(), "xd")
+	u, err := userRepository.GetByEmail(context.Background(), "xd")
 	assert.Nil(t, u)
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, store.ErrUnknown)

@@ -23,7 +23,7 @@ import (
 type Service interface {
 	Ping(ctx context.Context) error
 	LoginUserJWT(ctx context.Context, username string, password string) (*model.CreateJWTResponse, error)
-	RegisterUser(ctx context.Context, user, password string, isAdmin bool) (*model.User, error)
+	RegisterUser(ctx context.Context, email, password string) (*model.User, error)
 	CreateGroup(ctx context.Context, user, name, description string) (*model.CreateGroupResponse, error)
 	GetUserFromToken(ctx context.Context, t string) (string, error)
 }

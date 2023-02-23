@@ -19,7 +19,7 @@ func TestServer_RegisterUser_Positive(t *testing.T) {
 	var body []byte
 	var err error
 	req := &model.RegisterUserRequest{
-		Username: TestUser1.Name,
+		Email:    TestUser1.Email,
 		Password: TestUser1.Pass,
 	}
 	{
@@ -29,7 +29,7 @@ func TestServer_RegisterUser_Positive(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	srv := mocks.NewMockService(ctrl)
 
-	srv.EXPECT().RegisterUser(gomock.Any(), req.Username, req.Password, false).Return(TestUser1, nil)
+	srv.EXPECT().RegisterUser(gomock.Any(), req.Email, req.Password).Return(TestUser1, nil)
 	s := TestServer(t, srv)
 
 	r := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(body))
@@ -65,7 +65,7 @@ func TestServer_RegisterUser_Negative(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			req, err := json.Marshal(&model.RegisterUserRequest{
-				Username: TestUser1.Name,
+				Email:    TestUser1.Email,
 				Password: TestUser1.Pass,
 			})
 			require.NoError(t, err, "prepare request data")
@@ -73,7 +73,7 @@ func TestServer_RegisterUser_Negative(t *testing.T) {
 
 			ctrl := gomock.NewController(t)
 			srv := mocks.NewMockService(ctrl)
-			srv.EXPECT().RegisterUser(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, tc.err).AnyTimes()
+			srv.EXPECT().RegisterUser(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, tc.err).AnyTimes()
 			s := TestServer(t, srv)
 
 			r := httptest.NewRequest(http.MethodPost, "/", body)

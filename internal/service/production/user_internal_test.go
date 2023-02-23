@@ -20,10 +20,9 @@ import (
 
 var (
 	_user1 = &model.User{
-		ID:      uuid.New(),
-		Name:    "marlo",
-		Pass:    "difficult_password1",
-		IsAdmin: false,
+		ID:    uuid.New(),
+		Pass:  "difficult_password1",
+		Email: "email@example.com",
 	}
 )
 
@@ -35,11 +34,11 @@ func TestService_RegisterUser_Positive(t *testing.T) {
 	s.EXPECT().User().Return(user).AnyTimes()
 	srv := testService(t, s)
 
-	u, err := srv.RegisterUser(context.Background(), _user1.Name, _user1.Pass, _user1.IsAdmin)
+	u, err := srv.RegisterUser(context.Background(), _user1.Email, _user1.Pass)
 	assert.NoError(t, err)
 	assert.NotEqual(t, uuid.Nil, u.ID)
 	u.ID = _user1.ID
-	assert.Equal(t, _user1.Name, u.Name)
+	assert.Equal(t, _user1.Email, u.Email)
 	assert.Empty(t, u.Pass)
 }
 
@@ -52,17 +51,17 @@ func TestService_RegisterUser(t *testing.T) {
 	srv := testService(t, s)
 
 	t.Run("already exists", func(t *testing.T) {
-		u, err := srv.RegisterUser(context.Background(), _user1.Name, _user1.Pass, _user1.IsAdmin)
+		u, err := srv.RegisterUser(context.Background(), _user1.Email, _user1.Pass)
 		assert.Nil(t, u)
 		assert.Error(t, err)
 		require.IsType(t, &fielderr.Error{}, err)
 		fErr := err.(*fielderr.Error)
 		assert.Equal(t, fielderr.CodeConflict, fErr.Code)
-		assert.Equal(t, "user with provided id already exists", fErr.Error())
+		assert.Equal(t, "login already in use", fErr.Error())
 	})
 
 	t.Run("too simple password", func(t *testing.T) {
-		u, err := srv.RegisterUser(context.Background(), _user1.Name, "p", _user1.IsAdmin)
+		u, err := srv.RegisterUser(context.Background(), _user1.Email, "p")
 		assert.Nil(t, u)
 		assert.Error(t, err)
 		require.IsType(t, &fielderr.Error{}, err)
@@ -71,7 +70,7 @@ func TestService_RegisterUser(t *testing.T) {
 		assert.Equal(t, simplePasswordErrText, fErr.Error())
 	})
 	t.Run("to long password", func(t *testing.T) {
-		u, err := srv.RegisterUser(context.Background(), _user1.Name, strings.Repeat(_user1.Pass, 10000), _user1.IsAdmin)
+		u, err := srv.RegisterUser(context.Background(), _user1.Email, strings.Repeat(_user1.Pass, 10000))
 		assert.Error(t, err)
 		assert.Nil(t, u)
 		assert.IsType(t, &fielderr.Error{}, err)
@@ -90,10 +89,10 @@ func TestService_RegisterUser_Unknown(t *testing.T) {
 	s.EXPECT().User().Return(user).AnyTimes()
 	srv := testService(t, s)
 
-	u, err := srv.RegisterUser(context.Background(), _user1.Name, _user1.Pass, _user1.IsAdmin)
+	u, err := srv.RegisterUser(context.Background(), _user1.Email, _user1.Pass)
 	assert.Nil(t, u)
 	assert.IsType(t, &fielderr.Error{}, err)
-	assert.Equal(t, internalErrMsg, err.Error())
+	assert.Equal(t, "internal server error", err.Error())
 	fErr := err.(*fielderr.Error)
 	assert.Equal(t, fielderr.CodeInternal, fErr.Code)
 }
@@ -107,13 +106,13 @@ func TestService_LoginUserJWT_Positive(t *testing.T) {
 	pass, err := bcrypt.GenerateFromPassword([]byte(config.New().Server.Salt+_user1.Pass), bcrypt.DefaultCost)
 	assert.NoError(t, err)
 
-	u1 := &model.User{ID: _user1.ID, Name: _user1.Name, Pass: string(pass)}
-	user.EXPECT().GetByName(gomock.Any(), gomock.Any()).Return(u1, nil)
+	u1 := &model.User{ID: _user1.ID, Email: _user1.Email, Pass: string(pass)}
+	user.EXPECT().GetByEmail(gomock.Any(), gomock.Any()).Return(u1, nil)
 
 	s.EXPECT().User().Return(user).AnyTimes()
 	srv := testService(t, s)
 
-	resp, err := srv.LoginUserJWT(context.Background(), _user1.Name, _user1.Pass)
+	resp, err := srv.LoginUserJWT(context.Background(), _user1.Email, _user1.Pass)
 	assert.NoError(t, err)
 
 	assert.NotNil(t, resp)
@@ -146,7 +145,7 @@ func TestService_LoginUserJWT(t *testing.T) {
 			s := mocks.NewMockStore(ctrl)
 			user := mocks.NewMockUserRepository(ctrl)
 
-			user.EXPECT().GetByName(gomock.Any(), gomock.Any()).Return(&model.User{}, tc.wantErr)
+			user.EXPECT().GetByEmail(gomock.Any(), gomock.Any()).Return(&model.User{}, tc.wantErr)
 
 			s.EXPECT().User().Return(user).AnyTimes()
 			srv := testService(t, s)
