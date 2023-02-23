@@ -47,7 +47,7 @@ func (s *Server) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	u, err := s.srv.RegisterUser(r.Context(), req.Email, req.Password)
 	if err != nil {
 		if fieldErr, ok := err.(*fielderr.Error); ok {
-			s.respond(w, fieldErr.CodeHTTP(), fieldErr.Data, ReqIDField(reqID))
+			s.respond(w, fieldErr.CodeHTTP(), fieldErr.Data(), ReqIDField(reqID))
 			return
 		}
 
@@ -85,7 +85,7 @@ func (s *Server) LoginJWT(w http.ResponseWriter, r *http.Request) {
 	u, err := s.srv.LoginUserJWT(r.Context(), req.Email, req.Password)
 	if err != nil {
 		if fdErr, ok := err.(*fielderr.Error); ok {
-			s.respond(w, fdErr.CodeHTTP(), fdErr.Data, ReqIDField(reqID), zap.Error(fdErr))
+			s.respond(w, fdErr.CodeHTTP(), fdErr.Data(), ReqIDField(reqID), zap.Error(fdErr))
 			return
 		}
 
@@ -108,7 +108,7 @@ func (s *Server) Ping(w http.ResponseWriter, r *http.Request) {
 	if err := s.srv.Ping(r.Context()); err != nil {
 
 		if fErr, ok := err.(*fielderr.Error); ok {
-			s.respond(w, fErr.CodeHTTP(), fErr.Data, zap.Error(err))
+			s.respond(w, fErr.CodeHTTP(), fErr.Data(), zap.Error(err))
 			return
 		}
 
@@ -136,7 +136,7 @@ func (s *Server) CreateGroup(w http.ResponseWriter, r *http.Request) {
 			s.respond(w, http.StatusBadRequest, nil, zap.Error(err), ReqIDField(reqID))
 			return
 		}
-		s.respond(w, fErr.CodeHTTP(), fErr.Data, append(fErr.Fields, ReqIDField(reqID))...)
+		s.respond(w, fErr.CodeHTTP(), fErr.Data(), append(fErr.Fields(), ReqIDField(reqID))...)
 		return
 	}
 	s.respond(w, http.StatusCreated, resp, ReqIDField(reqID))

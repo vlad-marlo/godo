@@ -9,7 +9,6 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/vlad-marlo/godo/internal/model"
-	"github.com/vlad-marlo/godo/internal/pkg/fielderr"
 	"github.com/vlad-marlo/godo/internal/service"
 	"github.com/vlad-marlo/godo/internal/store"
 	passwordvalidator "github.com/wagslane/go-password-validator"
@@ -19,39 +18,19 @@ import (
 	"time"
 )
 
-const (
-	simplePasswordErrText = "password is too simple"
-	internalErrMsg        = "internal error"
-	notFoundErrMsg        = "not found"
-	unauthorizedErrMsg    = "not authorized"
-	badRequestMsg         = "bad request"
-)
-
 // RegisterUser ...
 func (s *Service) RegisterUser(ctx context.Context, email, password string) (*model.User, error) {
 	// validate password.
 	if err := passwordvalidator.Validate(password, s.cfg.Auth.PasswordDifficult); err != nil {
-		return nil, fielderr.New(
-			simplePasswordErrText,
-			map[string]any{
-				"password": password,
-				"msg":      simplePasswordErrText,
-			},
-			fielderr.CodeBadRequest,
-		)
+		return nil, service.ErrPasswordToEasy.With(zap.Error(err))
 	}
 
 	// check email.
 	ea, err := mail.ParseAddress(email)
 	if err != nil {
-		return nil, fielderr.New(
-			badRequestMsg,
-			map[string]any{
-				"email": "pass valid email address",
-			},
-			fielderr.CodeConflict,
-		)
+		return nil, service.ErrEmailNotValid.With(zap.Error(err))
 	}
+	email = ea.Address
 
 	// take hash of password.
 	// TODO: fix bug with too long password (split password to parts by length and encrypt them separately).
@@ -61,28 +40,19 @@ func (s *Service) RegisterUser(ctx context.Context, email, password string) (*mo
 		bcrypt.DefaultCost,
 	)
 	if err != nil {
-		return nil, fielderr.New(
-			internalErrMsg,
-			map[string]any{
-				"password": password,
-				"msg":      "password is too long",
-				"error":    err.Error(),
-			},
-			fielderr.CodeBadRequest,
-			zap.Error(fmt.Errorf("bcrypt: generate from password: %w", err)),
-		)
+		return nil, service.ErrPasswordToLong.With(zap.Error(err), zap.String("email", email))
 	}
 
 	u := &model.User{
 		ID:    uuid.New(),
 		Pass:  string(pass),
-		Email: ea.Address,
+		Email: email,
 	}
 	if err = s.store.User().Create(ctx, u); err != nil {
 		if errors.Is(err, store.ErrUserAlreadyExists) {
-			return nil, service.ErrLoginAlreadyInUse
+			return nil, service.ErrEmailAlreadyInUse
 		}
-		return nil, service.ErrInternal
+		return nil, service.ErrInternal.With(zap.Error(err))
 	}
 	u.Pass = ""
 
@@ -95,26 +65,17 @@ func (s *Service) LoginUserJWT(ctx context.Context, email, password string) (*mo
 	if err != nil {
 		s.log.Error("get user by name", zap.Error(err))
 		if errors.Is(err, store.ErrNotFound) {
-			return nil, fielderr.New(
-				notFoundErrMsg,
-				nil,
-				fielderr.CodeUnauthorized,
-			)
+			return nil, service.ErrBadAuthData.With(zap.Error(err))
 		}
-		return nil, fielderr.New(internalErrMsg, nil, fielderr.CodeInternal, zap.Error(err))
+		return nil, service.ErrInternal.With(zap.Error(err))
 	}
 	if bcrypt.CompareHashAndPassword([]byte(u.Pass), []byte(s.cfg.Server.Salt+password)) != nil {
-		return nil, fielderr.New(unauthorizedErrMsg, nil, fielderr.CodeUnauthorized)
+		return nil, service.ErrBadAuthData.With()
 	}
 	at, rt, err := s.createJWTToken(u)
 	if err != nil {
 		s.log.Error("create jwt token", zap.Error(err))
-		return nil, fielderr.New(
-			internalErrMsg,
-			nil,
-			fielderr.CodeInternal,
-			zap.Error(fmt.Errorf("store: create jwt token: %w", err)),
-		)
+		return nil, service.ErrInternal.With(zap.Error(fmt.Errorf("store: create jwt token: %w", err)))
 	}
 
 	return &model.CreateJWTResponse{
@@ -130,7 +91,7 @@ func (s *Service) GetUserFromToken(ctx context.Context, t string) (string, error
 		return []byte(s.cfg.Server.SecretKey), nil
 	})
 	if err != nil {
-		return "", fmt.Errorf("parse jwt: %w", err)
+		return "", service.ErrInternal.With(zap.Error(fmt.Errorf("parse jwt: %w", err)))
 	}
 	if !token.Valid {
 		return "", service.ErrTokenNotValid

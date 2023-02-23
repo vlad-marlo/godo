@@ -50,7 +50,6 @@ func TestServer_RegisterUser_Positive(t *testing.T) {
 }
 
 func TestServer_RegisterUser_Negative(t *testing.T) {
-
 	tt := []struct {
 		name string
 		err  error
@@ -90,11 +89,13 @@ func TestServer_RegisterUser_Negative(t *testing.T) {
 				return
 			}
 			assert.Equal(t, fErr.CodeHTTP(), res.StatusCode)
-			if fErr.Data == nil {
-				fErr.Data = http.StatusText(fErr.CodeHTTP())
+			data := fErr.Data()
+			if data == nil {
+				data = http.StatusText(fErr.CodeHTTP())
+				t.Logf("got nil data: %v", data)
 			}
 			var expected []byte
-			expected, err = json.Marshal(fErr.Data)
+			expected, err = json.Marshal(data)
 			require.NoError(t, err)
 			assert.JSONEq(t, string(expected), w.Body.String())
 		})

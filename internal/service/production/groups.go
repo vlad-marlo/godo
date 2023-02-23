@@ -5,15 +5,19 @@ import (
 	"errors"
 	"github.com/google/uuid"
 	"github.com/vlad-marlo/godo/internal/model"
-	"github.com/vlad-marlo/godo/internal/pkg/fielderr"
+	"github.com/vlad-marlo/godo/internal/service"
 	"github.com/vlad-marlo/godo/internal/store"
+	"go.uber.org/zap"
 )
 
 // CreateGroup creates group in storage and prepares response to user.
 func (s *Service) CreateGroup(ctx context.Context, user, name, description string) (*model.CreateGroupResponse, error) {
 	userID, err := uuid.Parse(user)
 	if err != nil {
-		return nil, fielderr.New("bad user id", nil, fielderr.CodeUnauthorized)
+		return nil, service.ErrInternal.With(
+			zap.String("user", user),
+			zap.Error(err),
+		)
 	}
 	grp := &model.Group{
 		ID:          uuid.New(),
@@ -22,14 +26,12 @@ func (s *Service) CreateGroup(ctx context.Context, user, name, description strin
 		Description: description,
 	}
 
-	err = s.store.Group().Create(ctx, grp)
-
-	if err != nil {
+	if err = s.store.Group().Create(ctx, grp); err != nil {
 		if errors.Is(err, store.ErrGroupAlreadyExists) {
-			return nil, fielderr.New(err.Error(), nil, fielderr.CodeConflict)
+			return nil, service.ErrGroupAlreadyExists
 		}
 
-		return nil, fielderr.New(err.Error(), nil, fielderr.CodeBadRequest)
+		return nil, service.ErrInternal.With(zap.Error(err))
 	}
 	return &model.CreateGroupResponse{
 		ID:          grp.ID,
