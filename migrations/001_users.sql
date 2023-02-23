@@ -1,6 +1,6 @@
 create table users
 (
-    id       text        not null unique primary key,
+    id       uuid        not null unique primary key,
     username text unique not null,
     email    text unique not null,
     pass     text        not null

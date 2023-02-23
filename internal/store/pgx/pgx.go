@@ -38,16 +38,17 @@ func New(client Client, user *UserRepository, group *GroupRepository) *Store {
 	}
 }
 
-// User returns user
+// User returns user repository.
 func (store *Store) User() store.UserRepository {
 	return store.user
 }
 
+// Group return group repository.
 func (store *Store) Group() store.GroupRepository {
 	return store.group
 }
 
-// Ping ...
+// Ping checks connection to database.
 func (store *Store) Ping(ctx context.Context) error {
 	return store.p.Ping(ctx)
 }
