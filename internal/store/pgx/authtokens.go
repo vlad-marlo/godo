@@ -4,11 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vlad-marlo/godo/internal/model"
 	"github.com/vlad-marlo/godo/internal/store"
 	"go.uber.org/zap"
+	"time"
 )
 
 type TokenRepository struct {
@@ -33,12 +36,18 @@ func (repo *TokenRepository) Create(ctx context.Context, token *model.Token) err
 		token.ExpiresAt,
 		token.Expires,
 	); err != nil {
+		if pgErr, ok := err.(*pgconn.PgError); ok {
+			if pgErr.Code == pgerrcode.UniqueViolation {
+				return store.ErrTokenAlreadyExists
+			}
+		}
 		repo.l.Error("unknown error while creating new user token", TraceError(err)...)
 		return fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
 	}
 	return nil
 }
 
+// Get return token with provided body.
 func (repo *TokenRepository) Get(ctx context.Context, token string) (*model.Token, error) {
 	var t model.Token
 	if err := repo.p.QueryRow(
@@ -52,5 +61,11 @@ func (repo *TokenRepository) Get(ctx context.Context, token string) (*model.Toke
 		repo.l.Error("unexpected error while getting user by token", TraceError(err)...)
 		return nil, fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
 	}
+
+	// checking that token is valid - he does not expire or his expiration time was not.
+	if time.Now().UTC().After(t.ExpiresAt.UTC()) && t.Expires {
+		return nil, store.ErrTokenIsExpired
+	}
+
 	return &t, nil
 }

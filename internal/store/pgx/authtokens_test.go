@@ -31,10 +31,13 @@ func TestTokenRepository_GetUser(t *testing.T) {
 	require.NoError(t, srv.User().Create(ctx, TestUser1))
 	require.NoError(t, srv.Token().Create(ctx, TestToken1))
 	token, err = srv.Token().Get(ctx, TestToken1.Token)
-	assert.NotNil(t, token)
-	assert.NoError(t, err)
-	assert.Equal(t, TestToken1.UserID, token.UserID)
-	assert.Equal(t, TestToken1.Expires, token.Expires)
+	assert.Nil(t, token)
+	assert.ErrorIs(t, err, store.ErrTokenIsExpired)
 
-	assert.InDelta(t, TestToken1.ExpiresAt.Second(), token.ExpiresAt.Second(), 1)
+	require.ErrorIs(t, srv.Token().Create(ctx, TestToken2), store.ErrTokenAlreadyExists)
+
+	assert.NoError(t, srv.Token().Create(ctx, TestToken3))
+	token, err = srv.Token().Get(ctx, TestToken3.Token)
+	assert.NoError(t, err)
+	assert.True(t, TestToken3.ExpiresAt.After(token.ExpiresAt))
 }

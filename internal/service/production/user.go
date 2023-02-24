@@ -119,6 +119,7 @@ func (s *Service) GetUserFromToken(ctx context.Context, t string) (string, error
 	return "", service.ErrBadAuthData
 }
 
+// getUserFromAuthToken ...
 func (s *Service) getUserFromAuthToken(ctx context.Context, t string) (string, error) {
 	t = strings.TrimPrefix(t, "Authorization ")
 	u, err := s.store.Token().Get(ctx, t)
@@ -144,6 +145,7 @@ func (s *Service) getUserFromJWTToken(ctx context.Context, t string) (string, er
 	if !ok {
 		return "", service.ErrTokenNotValid
 	}
+
 	u := claims.Subject
 	if !s.store.User().Exists(ctx, u) {
 		return "", service.ErrTokenNotValid

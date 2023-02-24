@@ -11,6 +11,7 @@ import (
 	"strings"
 )
 
+// Service provide getting user from token.
 type Service interface {
 	GetUserFromToken(ctx context.Context, t string) (string, error)
 }
@@ -35,25 +36,30 @@ func AuthChecker(srv Service) func(next http.Handler) http.Handler {
 				if err != nil {
 					zap.L().Error("http: ResponseWriter: Write", zap.Error(err), zap.String(reqIDField, reqID))
 				}
+
 				return
 			}
 
 			u, err := srv.GetUserFromToken(r.Context(), token)
 			if err != nil {
+
 				if fErr, ok := err.(*fielderr.Error); ok {
 					zap.L().Debug("get user from token", append(fErr.Fields(), zap.Error(err), zap.String(reqIDField, reqID))...)
-					if err = json.NewEncoder(w).Encode(fErr.Data); err != nil {
+					if err = json.NewEncoder(w).Encode(fErr.Data()); err != nil {
 						zap.L().Error("encode data", zap.Error(err))
 					}
 					return
 				}
+
 				zap.L().Debug("get user from token", zap.Error(err), zap.String(reqIDField, reqID))
 
 				w.WriteHeader(http.StatusUnauthorized)
+
 				_, err = w.Write([]byte(http.StatusText(http.StatusUnauthorized)))
 				if err != nil {
 					zap.L().Error("http: ResponseWriter: Write", zap.Error(err), zap.String(reqIDField, reqID))
 				}
+
 				return
 			}
 

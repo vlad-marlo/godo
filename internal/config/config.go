@@ -140,11 +140,11 @@ func initConfig() {
 		if err == nil {
 			configPath = path.Join(path.Dir(ex), configPath)
 
-			if err := c.ParseFromFile(configPath); err != nil {
+			if err = c.ParseFromFile(configPath); err != nil {
 				zap.L().Info("config: parse from file", zap.Error(err))
 			}
 			c.setDefaultVars()
-			if err := c.WriteToFile(configPath); err != nil {
+			if err = c.WriteToFile(configPath); err != nil {
 				zap.L().Info("config: write to file", zap.Error(err))
 			}
 		} else {

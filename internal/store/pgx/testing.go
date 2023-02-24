@@ -57,18 +57,18 @@ var (
 		ExpiresAt: time.Now().UTC(),
 		Expires:   true,
 	}
-	//TestToken2 = &model.Token{
-	//	UserID:    TestUser1.ID,
-	//	Token:     "another token",
-	//	ExpiresAt: time.Now().Add(time.Hour),
-	//	Expires:   true,
-	//}
-	//TestToken3 = &model.Token{
-	//	UserID:    TestUser1.ID,
-	//	Token:     TestToken1.Token,
-	//	ExpiresAt: time.Now(),
-	//	Expires:   false,
-	//}
+	TestToken2 = &model.Token{
+		UserID:    TestUser1.ID,
+		Token:     TestToken1.Token,
+		ExpiresAt: time.Now().UTC(),
+		Expires:   false,
+	}
+	TestToken3 = &model.Token{
+		UserID:    TestUser1.ID,
+		Token:     "another token",
+		ExpiresAt: time.Now().UTC(),
+		Expires:   false,
+	}
 )
 
 // testStore ...
