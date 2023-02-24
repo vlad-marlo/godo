@@ -130,6 +130,58 @@ func (mr *MockGroupRepositoryMockRecorder) Exists(ctx, id interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockGroupRepository)(nil).Exists), ctx, id)
 }
 
+// MockTokenRepository is a mock of TokenRepository interface.
+type MockTokenRepository struct {
+	ctrl     *gomock.Controller
+	recorder *MockTokenRepositoryMockRecorder
+}
+
+// MockTokenRepositoryMockRecorder is the mock recorder for MockTokenRepository.
+type MockTokenRepositoryMockRecorder struct {
+	mock *MockTokenRepository
+}
+
+// NewMockTokenRepository creates a new mock instance.
+func NewMockTokenRepository(ctrl *gomock.Controller) *MockTokenRepository {
+	mock := &MockTokenRepository{ctrl: ctrl}
+	mock.recorder = &MockTokenRepositoryMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockTokenRepository) EXPECT() *MockTokenRepositoryMockRecorder {
+	return m.recorder
+}
+
+// Create mocks base method.
+func (m *MockTokenRepository) Create(ctx context.Context, token *model.Token) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Create", ctx, token)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Create indicates an expected call of Create.
+func (mr *MockTokenRepositoryMockRecorder) Create(ctx, token interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockTokenRepository)(nil).Create), ctx, token)
+}
+
+// Get mocks base method.
+func (m *MockTokenRepository) Get(ctx context.Context, token string) (*model.Token, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Get", ctx, token)
+	ret0, _ := ret[0].(*model.Token)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Get indicates an expected call of Get.
+func (mr *MockTokenRepositoryMockRecorder) Get(ctx, token interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockTokenRepository)(nil).Get), ctx, token)
+}
+
 // MockStore is a mock of Store interface.
 type MockStore struct {
 	ctrl     *gomock.Controller
@@ -179,6 +231,20 @@ func (m *MockStore) Ping(ctx context.Context) error {
 func (mr *MockStoreMockRecorder) Ping(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ping", reflect.TypeOf((*MockStore)(nil).Ping), ctx)
+}
+
+// Token mocks base method.
+func (m *MockStore) Token() store.TokenRepository {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Token")
+	ret0, _ := ret[0].(store.TokenRepository)
+	return ret0
+}
+
+// Token indicates an expected call of Token.
+func (mr *MockStoreMockRecorder) Token() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Token", reflect.TypeOf((*MockStore)(nil).Token))
 }
 
 // User mocks base method.

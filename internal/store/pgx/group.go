@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -41,7 +42,17 @@ func (repo *GroupRepository) Exists(ctx context.Context, id string) (ok bool) {
 
 // Create ...
 func (repo *GroupRepository) Create(ctx context.Context, group *model.Group) error {
-	if err := repo.pool.QueryRow(
+	tx, err := repo.pool.Begin(ctx)
+	if err != nil {
+		repo.log.Error("failed to begin transaction: check pgx driver", TraceError(err)...)
+		return store.ErrUnknown
+	}
+	defer func() {
+		if err := tx.Rollback(ctx); err != nil && !errors.Is(err, pgx.ErrTxClosed) {
+			repo.log.Error("failed to rollback transaction: check pgx driver", TraceError(err)...)
+		}
+	}()
+	if err := tx.QueryRow(
 		ctx,
 		`INSERT INTO groups(id, name, description, owner) VALUES ($1, $2, $3, $4) RETURNING created_at;`,
 		group.ID,
@@ -68,6 +79,39 @@ func (repo *GroupRepository) Create(ctx context.Context, group *model.Group) err
 
 		return fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
 	}
+
+	if _, err = tx.Exec(
+		ctx,
+		`INSERT INTO roles(members, tasks, reviews, "comments")  VALUES (0, 0, 0, 0) ON CONFLICT DO NOTHING;`,
+	); err != nil {
+
+		repo.log.Error("unknown error while creating role", TraceError(err)...)
+		return store.ErrUnknown
+	}
+
+	if _, err := tx.Exec(
+		ctx,
+		`INSERT INTO user_in_group(user_id, group_id, role_id, is_admin)
+VALUES ($1, $2, (SELECT x.id
+                 FROM roles x
+                 WHERE x.comments = 0
+                   AND x.reviews = 0
+                   AND x.members = 0
+                   AND x.tasks = 0
+                 LIMIT 1), $3);`,
+		group.Owner,
+		group.ID,
+		true,
+	); err != nil {
+		repo.log.Error("unknown error while creating record about user in group", TraceError(err)...)
+		return fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		repo.log.Error("failed to commit transaction: check pgx driver", TraceError(err)...)
+		return store.ErrUnknown
+	}
+
 	return nil
 }
 
@@ -97,4 +141,31 @@ func (repo *GroupRepository) Get(ctx context.Context, id string) (*model.Group, 
 		return nil, fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
 	}
 	return g, nil
+}
+
+func (repo *GroupRepository) GetUsers(ctx context.Context, id string) ([]uuid.UUID, error) {
+	rows, err := repo.pool.Query(ctx, `SELECT user_id FROM user_in_group WHERE group_id = $1;`, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+	}
+	defer rows.Close()
+
+	var ids []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			repo.log.Error("unknown error while scanning rows", TraceError(err)...)
+			return nil, store.ErrUnknown
+		}
+		ids = append(ids, id)
+	}
+
+	if err = rows.Err(); err != nil {
+		repo.log.Error("error occurred while reading query", TraceError(err)...)
+		return nil, fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
+	}
+
+	return ids, nil
 }

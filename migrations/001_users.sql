@@ -1,3 +1,4 @@
+set time zone 'Europe/London';
 create table users
 (
     id    uuid        not null unique primary key,

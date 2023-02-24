@@ -28,7 +28,7 @@ func AuthChecker(srv Service) func(next http.Handler) http.Handler {
 			token := r.Header.Get("authorization")
 			reqID := middleware.GetReqID(r.Context())
 
-			if !strings.Contains("Bearer ", token) {
+			if !strings.Contains("Bearer ", token) && !strings.Contains("Authorization ", token) {
 				w.WriteHeader(http.StatusUnauthorized)
 
 				_, err := w.Write([]byte(http.StatusText(http.StatusUnauthorized)))
@@ -37,8 +37,6 @@ func AuthChecker(srv Service) func(next http.Handler) http.Handler {
 				}
 				return
 			}
-
-			token = strings.TrimPrefix("Bearer ", token)
 
 			u, err := srv.GetUserFromToken(r.Context(), token)
 			if err != nil {

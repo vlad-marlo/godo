@@ -1,12 +1,29 @@
 basePath: /api/v1
 definitions:
-  model.CreateJWTResponse:
+  model.CreateGroupRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  model.CreateTokenRequest:
+    properties:
+      email:
+        description: Email is user email
+        example: user@example.com
+        type: string
+      password:
+        description: Password is password of user.
+        example: strong_password
+        type: string
+      token-type:
+        example: bearer
+        type: string
+    type: object
+  model.CreateTokenResponse:
     properties:
       access_token:
-        type: string
-      expires_in:
-        type: integer
-      refresh_token:
         type: string
       token_type:
         type: string
@@ -69,33 +86,6 @@ paths:
       summary: Запрос состояния сервиса
       tags:
       - Ping
-  /users/login/jwt:
-    post:
-      consumes:
-      - application/json
-      operationId: login_jwt
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/model.CreateJWTResponse'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "401":
-          description: Unauthorized
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Создание пользователя
-      tags:
-      - JWTCreate
   /users/register:
     post:
       consumes:
@@ -130,6 +120,40 @@ paths:
       summary: Создание пользователя
       tags:
       - UserCreate
+  /users/token:
+    post:
+      consumes:
+      - application/json
+      operationId: login_jwt
+      parameters:
+      - description: User data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.CreateTokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Создание JWT токена для пользователя.
+      tags:
+      - CreateToken
 securityDefinitions:
   BasicAuth:
     type: basic

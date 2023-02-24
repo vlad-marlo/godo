@@ -33,6 +33,7 @@ func (s *Service) CreateGroup(ctx context.Context, user, name, description strin
 
 		return nil, service.ErrInternal.With(zap.Error(err))
 	}
+
 	return &model.CreateGroupResponse{
 		ID:          grp.ID,
 		Name:        name,

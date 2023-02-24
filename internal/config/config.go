@@ -9,6 +9,7 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/caarlos0/env/v7"
 	"github.com/pelletier/go-toml/v2"
+	"github.com/vlad-marlo/godo/internal/model"
 	"go.uber.org/zap"
 	"log"
 	"os"
@@ -36,6 +37,7 @@ type (
 		AccessTokenLifeTime  time.Duration `env:"ACCESS_TOKEN_LIFETIME" envDefault:"720h" toml:"access_token_lifetime"`
 		RefreshTokenLifeTime time.Duration `env:"REFRESH_TOKEN_LIFETIME" envDefault:"720h" toml:"refresh_token_lifetime"`
 		PasswordDifficult    float64       `env:"MIN_PASSWORD_ENTROPY" toml:"password_difficult"`
+		AuthTokenSize        int           `env:"AUTH_TOKEN_SIZE" toml:"auth_token_size"`
 	}
 	// Server is internal configuration of server.
 	Server struct {
@@ -55,14 +57,19 @@ type (
 		DatabaseURI string `env:"TEST_DB_URI"`
 		Enable      bool   `env:"TEST"`
 	}
+	Roles struct {
+		Default model.Role `toml:"default_user"`
+		Admin   model.Role `toml:"admin_user"`
+	}
 
 	// Config ...
 	Config struct {
-		Postgres Postgres
-		HTTPS    HTTPS
-		Server   Server
-		Test     Test `toml:"-"`
-		Auth     Auth
+		Postgres Postgres `toml:"postgres"`
+		HTTPS    HTTPS    `toml:"https"`
+		Server   Server   `toml:"server"`
+		Test     Test     `toml:"-"`
+		Auth     Auth     `toml:"auth"`
+		//Roles    Roles    `toml:"roles"`
 	}
 )
 
@@ -85,6 +92,8 @@ const (
 	defaultPassDif     = 40
 	defaultConfigPath  = "configs/config.toml"
 	defaultType        = "http"
+	defaultTokenSize   = 20
+	defaultTimeLayout  = time.RFC3339
 )
 
 func New() *Config {
@@ -94,8 +103,6 @@ func New() *Config {
 
 // initConfig creates new config instance. Should be called just once. Always use sync.Once to access to this function.
 func initConfig() {
-	l, _ := zap.NewProduction()
-	zap.ReplaceGlobals(l)
 	c = &Config{}
 	if err := env.Parse(c); err != nil {
 		log.Fatalf("env: parse: %v", err)
@@ -209,7 +216,10 @@ func (c *Config) setDefaultVars() {
 		c.Server.Type = defaultType
 	}
 	if c.Server.TimeFormat == "" {
-		c.Server.TimeFormat = time.RFC3339
+		c.Server.TimeFormat = defaultTimeLayout
+	}
+	if c.Auth.AuthTokenSize == 0 {
+		c.Auth.AuthTokenSize = defaultTokenSize
 	}
 }
 

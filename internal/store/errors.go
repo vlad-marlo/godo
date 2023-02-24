@@ -10,5 +10,5 @@ var (
 	ErrBadData            = errors.New("bad data")
 	ErrNotFound           = errors.New("not found")
 	ErrUnknown            = errors.New("unknown error")
-	ErrBadForeignKey      = errors.New("bad foreign key")
+	ErrTokenIsExpired     = errors.New("token is expired")
 )

@@ -4,7 +4,6 @@ package store
 
 import (
 	"context"
-
 	"github.com/vlad-marlo/godo/internal/model"
 )
 
@@ -19,8 +18,14 @@ type GroupRepository interface {
 	Exists(ctx context.Context, id string) bool
 }
 
+type TokenRepository interface {
+	Create(ctx context.Context, token *model.Token) error
+	Get(ctx context.Context, token string) (*model.Token, error)
+}
+
 type Store interface {
 	User() UserRepository
 	Group() GroupRepository
+	Token() TokenRepository
 	Ping(ctx context.Context) error
 }

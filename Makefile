@@ -14,6 +14,7 @@ cover:
 
 .PHONY: generage
 generate:
+	swag fmt
 	swag init -d cmd/server/,internal/controller/http/,internal/model/
 	go generate ./...
 	protoc --go_out=. --go_opt=paths=import \
@@ -23,6 +24,10 @@ generate:
 .PHONY: migrate
 migrate:
 	tern migrate -c migrations/tern.conf -m migrations
+
+.PHONY: test_migrate
+test_migrate:
+	tern migrate -c migrations/tern.conf -m migrations --database godo_test
 
 .PHONY: lines
 lines:

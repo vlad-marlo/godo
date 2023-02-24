@@ -55,28 +55,33 @@ func CreateApp() fx.Option {
 			),
 			pgx.NewGroupRepository,
 			pgx.NewUserRepository,
+			pgx.NewTokenRepository,
 			httpctrl.New,
 		),
 		fx.WithLogger(ZapEventLogger),
 		fx.Invoke(
+			CreateLogger,
 			ValidateConfig,
 			StartHTTPServer,
-			CheckClient,
 			StartGRPCServer,
 			LoggerSyncer,
-			LogConfig,
 		),
 	)
 }
 
-func LogConfig(logger *zap.Logger, cfg *config.Config) {
-	logger.Info("starting with config", zap.Any("config", cfg))
+// CreateLogger replaces global zap logger with new production logger.
+func CreateLogger() error {
+	log, err := zap.NewProduction()
+	if err != nil {
+		return err
+	}
+	zap.ReplaceGlobals(log)
+	return nil
 }
 
 // ZapEventLogger return new event logger for fx application.
 func ZapEventLogger(logger *zap.Logger) fxevent.Logger {
-	//return &fxevent.ZapLogger{Logger: logger}
-	return &fxevent.NopLogger
+	return &fxevent.ZapLogger{Logger: logger}
 }
 
 // StartHTTPServer is starting http server if must.
@@ -101,17 +106,6 @@ func StartGRPCServer(lc fx.Lifecycle, h *grpc.Server, cfg *config.Config) {
 	})
 }
 
-// CheckClient checks connection to postgres server and add closing pool hook.
-func CheckClient(lc fx.Lifecycle, client pgx.Client) error {
-	lc.Append(fx.Hook{
-		OnStop: func(ctx context.Context) error {
-			client.P().Close()
-			return nil
-		},
-	})
-	return client.P().Ping(context.Background())
-}
-
 // ValidateConfig checks if config valid and if not logs recommendations to configure application.
 func ValidateConfig(cfg *config.Config, log *zap.Logger) error {
 	if ok, err := cfg.Valid(); err != nil || !ok {
@@ -130,6 +124,7 @@ func ServiceFactory(store store.Store, cfg *config.Config, log *zap.Logger) serv
 	return production.New(store, cfg, log)
 }
 
+// LoggerSyncer add hook to fx application that syncs logger on server shut down.
 func LoggerSyncer(lc fx.Lifecycle, log *zap.Logger) {
 	lc.Append(fx.Hook{
 		OnStop: func(ctx context.Context) error {

@@ -72,7 +72,7 @@ func TestService_RegisterUser(t *testing.T) {
 }
 
 func TestService_RegisterUser_Unknown(t *testing.T) {
-	// preparations
+	// init necessary objects
 	ctrl := gomock.NewController(t)
 	s := mocks.NewMockStore(ctrl)
 	user := mocks.NewMockUserRepository(ctrl)
@@ -103,12 +103,12 @@ func TestService_LoginUserJWT_Positive(t *testing.T) {
 	s.EXPECT().User().Return(user).AnyTimes()
 	srv := testService(t, s)
 
-	resp, err := srv.LoginUserJWT(context.Background(), _user1.Email, _user1.Pass)
+	resp, err := srv.CreateToken(context.Background(), _user1.Email, _user1.Pass, BearerToken)
 	assert.NoError(t, err)
 
 	assert.NotNil(t, resp)
 	assert.Equal(t, resp.TokenType, "bearer")
-	for _, tok := range []string{resp.AccessToken, resp.RefreshToken} {
+	for _, tok := range []string{resp.AccessToken} {
 		token, err := jwt.ParseWithClaims(tok, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
 			return []byte(config.New().Server.SecretKey), nil
 		})
@@ -138,7 +138,7 @@ func TestService_LoginUserJWT(t *testing.T) {
 
 			s.EXPECT().User().Return(user).AnyTimes()
 			srv := testService(t, s)
-			resp, err := srv.LoginUserJWT(context.Background(), "", "")
+			resp, err := srv.CreateToken(context.Background(), "", "", BearerToken)
 			assert.Nil(t, resp)
 			assert.ErrorIs(t, err, tc.wantErr)
 		})

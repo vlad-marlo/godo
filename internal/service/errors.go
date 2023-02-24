@@ -7,14 +7,23 @@ import (
 var (
 	ErrTokenNotValid = fielderr.New(
 		"token is not valid",
-		map[string]any{
-			"token": "check if it valid",
+		map[string]string{
+			"token": "is not valid token",
 		},
 		fielderr.CodeUnauthorized,
 	)
+	ErrBadTokenType = fielderr.New(
+		"bad token type",
+		map[string]string{
+			"token-type": "token type must be auth-token, bearer or jwt",
+		},
+		fielderr.CodeBadRequest,
+	)
 	ErrEmailAlreadyInUse = fielderr.New(
 		"email already in use",
-		map[string]string{"email": "already in use"},
+		map[string]string{
+			"email": "already in use",
+		},
 		fielderr.CodeConflict,
 	)
 	ErrInternal = fielderr.New(

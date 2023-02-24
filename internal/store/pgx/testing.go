@@ -19,7 +19,7 @@ import (
 	"github.com/vlad-marlo/godo/internal/pkg/client/postgres"
 )
 
-var _dbTables = []string{"users", "groups"}
+var _dbTables = []string{"users", "groups", "auth_tokens", "comments", "reviews", "roles", "task_group", "task_user", "tasks", "user_in_group", "invites"}
 
 var (
 	TestUser1 = &model.User{
@@ -51,6 +51,24 @@ var (
 		Description: "another description",
 		CreatedAt:   time.Now(),
 	}
+	TestToken1 = &model.Token{
+		UserID:    TestUser1.ID,
+		Token:     "some token",
+		ExpiresAt: time.Now().UTC(),
+		Expires:   true,
+	}
+	//TestToken2 = &model.Token{
+	//	UserID:    TestUser1.ID,
+	//	Token:     "another token",
+	//	ExpiresAt: time.Now().Add(time.Hour),
+	//	Expires:   true,
+	//}
+	//TestToken3 = &model.Token{
+	//	UserID:    TestUser1.ID,
+	//	Token:     TestToken1.Token,
+	//	ExpiresAt: time.Now(),
+	//	Expires:   false,
+	//}
 )
 
 // testStore ...
@@ -59,13 +77,12 @@ func testStore(t testing.TB, cli Client) (*Store, func()) {
 	if cli == nil {
 		cli = postgres.TestClient(t)
 	}
-	u := NewUserRepository(cli)
-	g := NewGroupRepository(cli)
-	s := New(cli, u, g)
+	userRepo := NewUserRepository(cli)
+	groupRepo := NewGroupRepository(cli)
+	tokenRepo := NewTokenRepository(cli)
+	s := New(cli, userRepo, groupRepo, tokenRepo)
 	return s, func() {
-		defer s.Close()
-		_, err := s.p.Exec(context.Background(), fmt.Sprintf(`TRUNCATE %s CASCADE;`, strings.Join(_dbTables, ", ")))
-		assert.NoError(t, err)
+		teardown(t, cli)(_dbTables...)
 	}
 }
 
@@ -99,13 +116,17 @@ func testGroupUser(t testing.TB) (*GroupRepository, *UserRepository, func()) {
 	usr := NewUserRepository(cli)
 
 	return grp, usr, func() {
-		teardown(t, cli)("users, groups")
+		teardown(t, cli)("users", "groups", "user_in_group")
 	}
 }
 
-func teardown(t testing.TB, cli *postgres.Client) func(...string) {
+func teardown(t testing.TB, cli Client) func(...string) {
 	return func(tables ...string) {
-		defer cli.Close()
+		closer, ok := cli.(interface{ Close() })
+		if ok {
+			defer closer.Close()
+		}
+
 		if len(tables) > 1 {
 			_, err := cli.P().Exec(context.Background(), fmt.Sprintf(`TRUNCATE %s CASCADE;`, strings.Join(tables, ", ")))
 			assert.NoError(t, err)
@@ -126,10 +147,4 @@ func BadCli(t testing.TB) Client {
 
 	cli.EXPECT().P().Return(pool).AnyTimes()
 	return cli
-}
-
-func testRole(t testing.TB) (*RoleRepository, func(...string)) {
-	cli := postgres.TestClient(t)
-	role := NewRoleRepository(cli)
-	return role, teardown(t, cli)
 }

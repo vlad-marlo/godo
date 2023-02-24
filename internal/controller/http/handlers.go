@@ -26,7 +26,7 @@ func ReqIDField(reqID string) zap.Field {
 //	@ID			user_create
 //	@Accept		json
 //	@Produce	json
-//	@Param		request	body		model.RegisterUserRequest true "User data"
+//	@Param		request	body		model.RegisterUserRequest	true	"User data"
 //	@Success	201		{object}	model.User
 //	@Failure	400		{object}	model.Error	"Bad Request"
 //	@Failure	409		{object}	model.Error	"Conflict"
@@ -61,20 +61,21 @@ func (s *Server) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	s.respond(w, http.StatusCreated, u)
 }
 
-// LoginJWT creates JWT bearer token with provided data.
+// CreateToken creates JWT bearer token with provided data.
 //
-//	@Tags		JWTCreate
+//	@Tags		CreateToken
 //	@Summary	Создание JWT токена для пользователя.
 //	@ID			login_jwt
 //	@Accept		json
 //	@Produce	json
-//	@Success	201	{object}	model.CreateJWTResponse
-//	@Failure	400	{string}	string	"Bad Request"
-//	@Failure	401	{string}	string	"Unauthorized"
-//	@Failure	500	{string}	string	"Internal Server Error"
-//	@Router		/users/login/jwt [post]
-func (s *Server) LoginJWT(w http.ResponseWriter, r *http.Request) {
-	var req model.LoginUserRequest
+//	@Param		request	body		model.CreateTokenRequest	true	"User data"
+//	@Success	201		{object}	model.CreateTokenResponse
+//	@Failure	400		{object}	model.Error	"Bad Request"
+//	@Failure	401		{string}	model.Error	"Unauthorized"
+//	@Failure	500		{string}	model.Error	"Internal Server Error"
+//	@Router		/users/token [post]
+func (s *Server) CreateToken(w http.ResponseWriter, r *http.Request) {
+	var req model.CreateTokenRequest
 	var buf bytes.Buffer
 	reqID := middleware.GetReqID(r.Context())
 
@@ -84,12 +85,12 @@ func (s *Server) LoginJWT(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = r.Body.Close()
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(&buf).Decode(&req); err != nil {
 		s.respond(w, http.StatusBadRequest, nil, zap.Error(err), ReqIDField(reqID))
 		return
 	}
 
-	u, err := s.srv.LoginUserJWT(r.Context(), req.Email, req.Password)
+	u, err := s.srv.CreateToken(r.Context(), req.Email, req.Password, req.TokenType)
 	if err != nil {
 		if fdErr, ok := err.(*fielderr.Error); ok {
 			s.respond(w, fdErr.CodeHTTP(), fdErr.Data(), ReqIDField(reqID), zap.Error(fdErr))
@@ -128,6 +129,20 @@ func (s *Server) Ping(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// CreateGroup create new group.
+//
+//	@tags						CreateGroup
+//	@summary					Создание группы пользователей
+//	@ID							group_create
+//	@Accept						json
+//	@produce					json
+//	@Param						request	body	model.CreateGroupRequest	true	"group data"
+//
+// Success 201 {object} model.CreateGroupResponse
+// Failure 400 {object} model.Error
+// Failure 401
+//
+//	@securityDefinitions.apikey	ApiKeyAuth
 func (s *Server) CreateGroup(w http.ResponseWriter, r *http.Request) {
 	// usage of buffer make unnecessary deferring closing of request body. That saves about 6ns
 	// source - (https://go.googlesource.com/proposal/+/refs/heads/master/design/34481-opencoded-defers.md)
