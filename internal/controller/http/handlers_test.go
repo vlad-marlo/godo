@@ -12,6 +12,7 @@ import (
 	"github.com/vlad-marlo/godo/internal/pkg/fielderr"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -19,17 +20,18 @@ func TestServer_RegisterUser_Positive(t *testing.T) {
 	var body []byte
 	var err error
 	req := &model.RegisterUserRequest{
-		Username: TestUser1.Name,
+		Email:    TestUser1.Email,
 		Password: TestUser1.Pass,
 	}
 	{
 		body, err = json.Marshal(req)
 		require.NoError(t, err)
 	}
+
 	ctrl := gomock.NewController(t)
 	srv := mocks.NewMockService(ctrl)
 
-	srv.EXPECT().RegisterUser(gomock.Any(), req.Username, req.Password, false).Return(TestUser1, nil)
+	srv.EXPECT().RegisterUser(gomock.Any(), req.Email, req.Password).Return(TestUser1, nil)
 	s := TestServer(t, srv)
 
 	r := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(body))
@@ -50,7 +52,6 @@ func TestServer_RegisterUser_Positive(t *testing.T) {
 }
 
 func TestServer_RegisterUser_Negative(t *testing.T) {
-
 	tt := []struct {
 		name string
 		err  error
@@ -62,10 +63,11 @@ func TestServer_RegisterUser_Negative(t *testing.T) {
 		{"conflict with data", fielderr.New("conflict", TestUser1, fielderr.CodeConflict)},
 		{"unknown error", errors.New("unknown")},
 	}
+
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			req, err := json.Marshal(&model.RegisterUserRequest{
-				Username: TestUser1.Name,
+				Email:    TestUser1.Email,
 				Password: TestUser1.Pass,
 			})
 			require.NoError(t, err, "prepare request data")
@@ -73,7 +75,7 @@ func TestServer_RegisterUser_Negative(t *testing.T) {
 
 			ctrl := gomock.NewController(t)
 			srv := mocks.NewMockService(ctrl)
-			srv.EXPECT().RegisterUser(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, tc.err).AnyTimes()
+			srv.EXPECT().RegisterUser(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, tc.err).AnyTimes()
 			s := TestServer(t, srv)
 
 			r := httptest.NewRequest(http.MethodPost, "/", body)
@@ -90,13 +92,36 @@ func TestServer_RegisterUser_Negative(t *testing.T) {
 				return
 			}
 			assert.Equal(t, fErr.CodeHTTP(), res.StatusCode)
-			if fErr.Data == nil {
-				fErr.Data = http.StatusText(fErr.CodeHTTP())
+			data := fErr.Data()
+			if data == nil {
+				data = http.StatusText(fErr.CodeHTTP())
+				t.Logf("got nil data: %v", data)
 			}
 			var expected []byte
-			expected, err = json.Marshal(fErr.Data)
+			expected, err = json.Marshal(data)
 			require.NoError(t, err)
 			assert.JSONEq(t, string(expected), w.Body.String())
 		})
 	}
+}
+
+func TestServer_RegisterUser(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv := mocks.NewMockService(ctrl)
+	s := TestServer(t, srv)
+
+	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("[xd:"))
+	defer assert.NoError(t, r.Body.Close())
+	w := httptest.NewRecorder()
+
+	s.RegisterUser(w, r)
+	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+
+	data := http.StatusText(res.StatusCode)
+	t.Logf("got nil data: %v", data)
+	expected, err := json.Marshal(data)
+	require.NoError(t, err)
+	assert.JSONEq(t, string(expected), w.Body.String())
 }

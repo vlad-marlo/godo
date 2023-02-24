@@ -35,13 +35,13 @@ func (repo *UserRepository) Create(
 	if u == nil {
 		return store.ErrBadData
 	}
+
 	if _, err := repo.p.Exec(
 		ctx,
-		`INSERT INTO users (id, username, pass, is_admin) VALUES ($1, $2, $3, $4);`,
+		`INSERT INTO users (id, email, pass) VALUES ($1, $2, $3);`,
 		u.ID,
-		u.Name,
+		u.Email,
 		u.Pass,
-		u.IsAdmin,
 	); err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok {
 			if pgErr.Code == pgerrcode.UniqueViolation {
@@ -51,19 +51,20 @@ func (repo *UserRepository) Create(
 		repo.l.Warn("unknown error while creating new user", TraceError(err)...)
 		return fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
 	}
+
 	return nil
 }
 
 // Exists checks if user exist with provided id or username. Returns boolean statement that shows existing of user.
-func (repo *UserRepository) Exists(ctx context.Context, user string) bool {
+func (repo *UserRepository) Exists(ctx context.Context, id string) bool {
 	var ok bool
-	_ = repo.p.QueryRow(ctx, `SELECT EXISTS(SELECT * FROM users WHERE id = $1);`, user).Scan(&ok)
+	_ = repo.p.QueryRow(ctx, `SELECT EXISTS(SELECT * FROM users WHERE id = $1);`, id).Scan(&ok)
 	return ok
 }
 
-// GetByName return user with provided username.
+// GetByEmail return user with provided username.
 // If user does not exist returns store.ErrNotFound error
-func (repo *UserRepository) GetByName(
+func (repo *UserRepository) GetByEmail(
 	ctx context.Context,
 	username string,
 ) (
@@ -74,13 +75,12 @@ func (repo *UserRepository) GetByName(
 
 	if err := repo.p.QueryRow(
 		ctx,
-		`SELECT x.id, x.username, x.pass, x.is_admin FROM users x WHERE x.username = $1;`,
+		`SELECT x.id, x.email, x.pass FROM users x WHERE x.email = $1;`,
 		username,
 	).Scan(
 		&u.ID,
-		&u.Name,
+		&u.Email,
 		&u.Pass,
-		&u.IsAdmin,
 	); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, store.ErrNotFound

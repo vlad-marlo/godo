@@ -17,6 +17,18 @@ import (
 	"go.uber.org/zap"
 )
 
+//	@title			GODO API
+//	@version		1.0
+//	@description	This is a godo server.
+
+//	@contact.name	API Support
+
+//	@host		localhost:8080
+//	@BasePath	/api/v1
+
+//	@securityDefinitions.basic	BasicAuth
+
+// @externalDocs.description	OpenAPI
 func main() {
 	fx.New(CreateApp()).Run()
 }
@@ -43,17 +55,28 @@ func CreateApp() fx.Option {
 			),
 			pgx.NewGroupRepository,
 			pgx.NewUserRepository,
+			pgx.NewTokenRepository,
 			httpctrl.New,
 		),
-		//fx.WithLogger(ZapEventLogger),
+		fx.WithLogger(ZapEventLogger),
 		fx.Invoke(
+			CreateLogger,
 			ValidateConfig,
 			StartHTTPServer,
-			CheckClient,
 			StartGRPCServer,
 			LoggerSyncer,
 		),
 	)
+}
+
+// CreateLogger replaces global zap logger with new production logger.
+func CreateLogger() error {
+	log, err := zap.NewProduction()
+	if err != nil {
+		return err
+	}
+	zap.ReplaceGlobals(log)
+	return nil
 }
 
 // ZapEventLogger return new event logger for fx application.
@@ -83,17 +106,6 @@ func StartGRPCServer(lc fx.Lifecycle, h *grpc.Server, cfg *config.Config) {
 	})
 }
 
-// CheckClient checks connection to postgres server and add closing pool hook.
-func CheckClient(lc fx.Lifecycle, client pgx.Client) error {
-	lc.Append(fx.Hook{
-		OnStop: func(ctx context.Context) error {
-			client.P().Close()
-			return nil
-		},
-	})
-	return client.P().Ping(context.Background())
-}
-
 // ValidateConfig checks if config valid and if not logs recommendations to configure application.
 func ValidateConfig(cfg *config.Config, log *zap.Logger) error {
 	if ok, err := cfg.Valid(); err != nil || !ok {
@@ -112,6 +124,7 @@ func ServiceFactory(store store.Store, cfg *config.Config, log *zap.Logger) serv
 	return production.New(store, cfg, log)
 }
 
+// LoggerSyncer add hook to fx application that syncs logger on server shut down.
 func LoggerSyncer(lc fx.Lifecycle, log *zap.Logger) {
 	lc.Append(fx.Hook{
 		OnStop: func(ctx context.Context) error {

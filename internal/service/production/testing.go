@@ -12,14 +12,14 @@ import (
 
 var (
 	TestUser1 = &model.User{
-		ID:   uuid.New(),
-		Name: "test user 1",
-		Pass: "some pass",
+		ID:    uuid.New(),
+		Email: "user1@test.com",
+		Pass:  "some pass",
 	}
 	TestGroup1 = &model.Group{
 		ID:          uuid.New(),
 		Name:        "test group 1",
-		CreatedBy:   TestUser1.ID,
+		Owner:       TestUser1.ID,
 		Description: "test description",
 		CreatedAt:   time.Now(),
 	}

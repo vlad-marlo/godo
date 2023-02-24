@@ -9,6 +9,7 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/caarlos0/env/v7"
 	"github.com/pelletier/go-toml/v2"
+	"github.com/vlad-marlo/godo/internal/model"
 	"go.uber.org/zap"
 	"log"
 	"os"
@@ -36,12 +37,13 @@ type (
 		AccessTokenLifeTime  time.Duration `env:"ACCESS_TOKEN_LIFETIME" envDefault:"720h" toml:"access_token_lifetime"`
 		RefreshTokenLifeTime time.Duration `env:"REFRESH_TOKEN_LIFETIME" envDefault:"720h" toml:"refresh_token_lifetime"`
 		PasswordDifficult    float64       `env:"MIN_PASSWORD_ENTROPY" toml:"password_difficult"`
+		AuthTokenSize        int           `env:"AUTH_TOKEN_SIZE" toml:"auth_token_size"`
 	}
 	// Server is internal configuration of server.
 	Server struct {
 		Type       string `env:"SERVER_TYPE" toml:"type" valid:"in(grpc|http|https|GRPC|HTTP|HTTPS)" envDefault:"HTTP"`
-		EnableHTTP bool
-		EnableGRPC bool
+		EnableHTTP bool   `toml:"-"`
+		EnableGRPC bool   `toml:"-"`
 		Salt       string `env:"ENCRYPT_SALT" valid:"required~use generated salt from the logs" toml:"salt"`
 		SecretKey  string `env:"SECRET_KEY" valid:"required" toml:"secret_key"`
 		IsDev      bool   `env:"IS_DEV" toml:"is_dev"`
@@ -55,14 +57,19 @@ type (
 		DatabaseURI string `env:"TEST_DB_URI"`
 		Enable      bool   `env:"TEST"`
 	}
+	Roles struct {
+		Default model.Role `toml:"default_user"`
+		Admin   model.Role `toml:"admin_user"`
+	}
 
 	// Config ...
 	Config struct {
-		Postgres Postgres
-		HTTPS    HTTPS
-		Server   Server
-		Test     Test
-		Auth     Auth
+		Postgres Postgres `toml:"postgres"`
+		HTTPS    HTTPS    `toml:"https"`
+		Server   Server   `toml:"server"`
+		Test     Test     `toml:"-"`
+		Auth     Auth     `toml:"auth"`
+		//Roles    Roles    `toml:"roles"`
 	}
 )
 
@@ -85,6 +92,8 @@ const (
 	defaultPassDif     = 40
 	defaultConfigPath  = "configs/config.toml"
 	defaultType        = "http"
+	defaultTokenSize   = 20
+	defaultTimeLayout  = time.RFC3339
 )
 
 func New() *Config {
@@ -125,20 +134,23 @@ func initConfig() {
 		c.Server.EnableGRPC = true
 	}
 
-	if !c.Test.Enable && useFileConfig {
+	if useFileConfig {
+		zap.L().Info("parsing cfg from file")
 		ex, err := os.Executable()
 		if err == nil {
-			absCPath := path.Join(path.Dir(ex), configPath)
+			configPath = path.Join(path.Dir(ex), configPath)
 
-			if err := c.ParseFromFile(absCPath); err != nil {
+			if err = c.ParseFromFile(configPath); err != nil {
 				zap.L().Info("config: parse from file", zap.Error(err))
 			}
-			if err := c.WriteToFile(absCPath); err != nil {
+			c.setDefaultVars()
+			if err = c.WriteToFile(configPath); err != nil {
 				zap.L().Info("config: write to file", zap.Error(err))
 			}
+		} else {
+			zap.L().Info("get os executable", zap.Error(err))
 		}
 	}
-
 	c.setDefaultVars()
 
 }
@@ -204,7 +216,10 @@ func (c *Config) setDefaultVars() {
 		c.Server.Type = defaultType
 	}
 	if c.Server.TimeFormat == "" {
-		c.Server.TimeFormat = time.RFC3339
+		c.Server.TimeFormat = defaultTimeLayout
+	}
+	if c.Auth.AuthTokenSize == 0 {
+		c.Auth.AuthTokenSize = defaultTokenSize
 	}
 }
 

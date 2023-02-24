@@ -19,6 +19,7 @@ type Store struct {
 	l     *zap.Logger
 	user  *UserRepository
 	group *GroupRepository
+	token *TokenRepository
 }
 
 type Client interface {
@@ -29,12 +30,13 @@ type Client interface {
 }
 
 // New ...
-func New(client Client, user *UserRepository, group *GroupRepository) *Store {
+func New(client Client, user *UserRepository, group *GroupRepository, token *TokenRepository) *Store {
 	return &Store{
 		p:     client.P(),
 		l:     client.L(),
 		user:  user,
 		group: group,
+		token: token,
 	}
 }
 
@@ -46,6 +48,10 @@ func (store *Store) User() store.UserRepository {
 // Group return group repository.
 func (store *Store) Group() store.GroupRepository {
 	return store.group
+}
+
+func (store *Store) Token() store.TokenRepository {
+	return store.token
 }
 
 // Ping checks connection to database.

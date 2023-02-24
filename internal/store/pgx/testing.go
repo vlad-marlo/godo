@@ -19,37 +19,55 @@ import (
 	"github.com/vlad-marlo/godo/internal/pkg/client/postgres"
 )
 
-var _dbTables = []string{"users", "groups"}
+var _dbTables = []string{"users", "groups", "auth_tokens", "comments", "reviews", "roles", "task_group", "task_user", "tasks", "user_in_group", "invites"}
 
 var (
 	TestUser1 = &model.User{
-		ID:   uuid.New(),
-		Name: "first_user",
-		Pass: "second_password",
+		ID:    uuid.New(),
+		Pass:  "second_password",
+		Email: "testemail1@xd.ru",
 	}
 	TestUser2 = &model.User{
-		ID:   uuid.New(),
-		Name: "second_user",
-		Pass: "some_passwords",
+		ID:    uuid.New(),
+		Pass:  "some_passwords",
+		Email: "good_email2@example.com",
 	}
 	TestUser3 = &model.User{
-		ID:   uuid.New(),
-		Name: "first_user",
-		Pass: "some_password",
+		ID:    uuid.New(),
+		Pass:  "some_password",
+		Email: TestUser1.Email,
 	}
 	TestGroup1 = &model.Group{
 		ID:          uuid.New(),
 		Name:        "test group",
-		CreatedBy:   TestUser1.ID,
+		Owner:       TestUser1.ID,
 		Description: "test description",
 		CreatedAt:   time.Now(),
 	}
 	TestGroup2 = &model.Group{
 		ID:          uuid.New(),
 		Name:        "another test group",
-		CreatedBy:   TestUser1.ID,
+		Owner:       TestUser1.ID,
 		Description: "another description",
 		CreatedAt:   time.Now(),
+	}
+	TestToken1 = &model.Token{
+		UserID:    TestUser1.ID,
+		Token:     "some token",
+		ExpiresAt: time.Now().UTC(),
+		Expires:   true,
+	}
+	TestToken2 = &model.Token{
+		UserID:    TestUser1.ID,
+		Token:     TestToken1.Token,
+		ExpiresAt: time.Now().UTC(),
+		Expires:   false,
+	}
+	TestToken3 = &model.Token{
+		UserID:    TestUser1.ID,
+		Token:     "another token",
+		ExpiresAt: time.Now().UTC(),
+		Expires:   false,
 	}
 )
 
@@ -59,13 +77,12 @@ func testStore(t testing.TB, cli Client) (*Store, func()) {
 	if cli == nil {
 		cli = postgres.TestClient(t)
 	}
-	u := NewUserRepository(cli)
-	g := NewGroupRepository(cli)
-	s := New(cli, u, g)
+	userRepo := NewUserRepository(cli)
+	groupRepo := NewGroupRepository(cli)
+	tokenRepo := NewTokenRepository(cli)
+	s := New(cli, userRepo, groupRepo, tokenRepo)
 	return s, func() {
-		defer s.Close()
-		_, err := s.p.Exec(context.Background(), fmt.Sprintf(`TRUNCATE %s CASCADE;`, strings.Join(_dbTables, ", ")))
-		assert.NoError(t, err)
+		teardown(t, cli)(_dbTables...)
 	}
 }
 
@@ -76,9 +93,7 @@ func testUsers(t testing.TB) (*UserRepository, func()) {
 	s := NewUserRepository(cli)
 
 	return s, func() {
-		defer cli.Close()
-		_, err := s.p.Exec(context.Background(), fmt.Sprintf(`TRUNCATE users CASCADE;`))
-		assert.NoError(t, err)
+		teardown(t, cli)("users")
 	}
 }
 
@@ -89,9 +104,7 @@ func testGroup(t testing.TB) (*GroupRepository, func()) {
 	s := NewGroupRepository(cli)
 
 	return s, func() {
-		defer cli.Close()
-		_, err := s.pool.Exec(context.Background(), fmt.Sprintf(`TRUNCATE groups CASCADE;`))
-		assert.NoError(t, err)
+		teardown(t, cli)("groups")
 	}
 }
 
@@ -103,9 +116,24 @@ func testGroupUser(t testing.TB) (*GroupRepository, *UserRepository, func()) {
 	usr := NewUserRepository(cli)
 
 	return grp, usr, func() {
-		defer cli.Close()
-		_, err := cli.P().Exec(context.Background(), fmt.Sprintf(`TRUNCATE groups, users CASCADE;`))
-		assert.NoError(t, err)
+		teardown(t, cli)("users", "groups", "user_in_group")
+	}
+}
+
+func teardown(t testing.TB, cli Client) func(...string) {
+	return func(tables ...string) {
+		closer, ok := cli.(interface{ Close() })
+		if ok {
+			defer closer.Close()
+		}
+
+		if len(tables) > 1 {
+			_, err := cli.P().Exec(context.Background(), fmt.Sprintf(`TRUNCATE %s CASCADE;`, strings.Join(tables, ", ")))
+			assert.NoError(t, err)
+		} else if len(tables) == 1 {
+			_, err := cli.P().Exec(context.Background(), fmt.Sprintf(`TRUNCATE %s CASCADE;`, tables[0]))
+			assert.NoError(t, err)
+		}
 	}
 }
 

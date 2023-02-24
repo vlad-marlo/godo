@@ -1,2 +1,5 @@
 .idea
 coverage.out
+server
+./main
+config.toml

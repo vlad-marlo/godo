@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"go.uber.org/zap/zapcore"
 	"net"
 	"net/http"
@@ -15,17 +16,24 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/crypto/acme/autocert"
 
+	_ "github.com/vlad-marlo/godo/docs"
 	"github.com/vlad-marlo/godo/internal/config"
 	mw "github.com/vlad-marlo/godo/internal/controller/http/middleware"
 	"github.com/vlad-marlo/godo/internal/model"
 )
 
 type Service interface {
+	// Ping checks access to server.
 	Ping(ctx context.Context) error
-	LoginUserJWT(ctx context.Context, username string, password string) (*model.CreateJWTResponse, error)
-	RegisterUser(ctx context.Context, user, password string, isAdmin bool) (*model.User, error)
-	CreateGroup(ctx context.Context, user, name, description string) (*model.CreateGroupResponse, error)
+	// CreateToken create new jwt token for refresh and access to server if auth credits are correct.
+	CreateToken(ctx context.Context, username, password, token string) (*model.CreateTokenResponse, error)
+	// RegisterUser create record about user in storage and prepares response to user.
+	RegisterUser(ctx context.Context, email, password string) (*model.User, error)
+	// GetUserFromToken is helper function that decodes jwt token from t and check existing of user which id is provided
+	// in token claims.
 	GetUserFromToken(ctx context.Context, t string) (string, error)
+	// CreateGroup create new group.
+	CreateGroup(ctx context.Context, user, name, description string) (*model.CreateGroupResponse, error)
 }
 
 type Server struct {
@@ -134,11 +142,21 @@ func (s *Server) configureMW() {
 
 // configureRoutes ...
 func (s *Server) configureRoutes() {
+	var prefix string
+	if s.cfg.HTTPS.KeyFile == "" || s.cfg.HTTPS.CertFile == "" || len(s.cfg.HTTPS.AllowedHosts) == 0 {
+		prefix = "http"
+	} else {
+		prefix = "https"
+	}
+
+	s.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL(fmt.Sprintf("%s://%s:%d/swagger/doc.json", prefix, s.cfg.Server.Addr, s.cfg.Server.Port)),
+	))
 	s.Route("/api/v1", func(r chi.Router) {
 		r.HandleFunc("/ping", s.Ping)
 		r.Route("/users", func(r chi.Router) {
 			r.Post("/register", s.RegisterUser)
-			r.Post("/login/jwt", s.LoginJWT)
+			r.Post("/token", s.CreateToken)
 		})
 		r.With(mw.AuthChecker(s.srv))
 	})

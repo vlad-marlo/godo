@@ -19,7 +19,7 @@ func TestGroupRepository_Create_Negative_BadData(t *testing.T) {
 	grp := &model.Group{
 		ID:          uuid.New(),
 		Name:        "test group",
-		CreatedBy:   TestUser1.ID,
+		Owner:       TestUser1.ID,
 		Description: "test description",
 		CreatedAt:   time.Now(),
 	}
@@ -52,14 +52,13 @@ func TestGroupRepository_Create_Negative_Unknown(t *testing.T) {
 }
 
 func TestGroupRepository_Create_AlreadyExists(t *testing.T) {
-	grp, grpTd := testGroup(t)
-	defer grpTd()
-	usr, uTd := testUsers(t)
-	defer uTd()
+	grp, usr, td := testGroupUser(t)
+	defer td()
 	ctx := context.Background()
 
 	err := usr.Create(ctx, TestUser1)
 	require.NoError(t, err)
+	require.True(t, usr.Exists(ctx, TestUser1.ID.String()))
 	g := TestGroup1
 	err = grp.Create(ctx, g)
 	require.NoError(t, err)

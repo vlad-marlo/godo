@@ -1,4 +1,4 @@
-create table issues
+create table comments
 (
     id         uuid not null unique primary key,
     task       uuid not null,
@@ -9,4 +9,4 @@ create table issues
     constraint task_fk foreign key (task) references tasks (id) match full on delete cascade
 );
 ---- create above / drop below ----
-drop table issues;
+drop table comments;

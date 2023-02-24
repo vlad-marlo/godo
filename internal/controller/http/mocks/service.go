@@ -50,6 +50,21 @@ func (mr *MockServiceMockRecorder) CreateGroup(ctx, user, name, description inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateGroup", reflect.TypeOf((*MockService)(nil).CreateGroup), ctx, user, name, description)
 }
 
+// CreateToken mocks base method.
+func (m *MockService) CreateToken(ctx context.Context, username, password, token string) (*model.CreateTokenResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateToken", ctx, username, password, token)
+	ret0, _ := ret[0].(*model.CreateTokenResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateToken indicates an expected call of CreateToken.
+func (mr *MockServiceMockRecorder) CreateToken(ctx, username, password, token interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateToken", reflect.TypeOf((*MockService)(nil).CreateToken), ctx, username, password, token)
+}
+
 // GetUserFromToken mocks base method.
 func (m *MockService) GetUserFromToken(ctx context.Context, t string) (string, error) {
 	m.ctrl.T.Helper()
@@ -63,21 +78,6 @@ func (m *MockService) GetUserFromToken(ctx context.Context, t string) (string, e
 func (mr *MockServiceMockRecorder) GetUserFromToken(ctx, t interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserFromToken", reflect.TypeOf((*MockService)(nil).GetUserFromToken), ctx, t)
-}
-
-// LoginUserJWT mocks base method.
-func (m *MockService) LoginUserJWT(ctx context.Context, username, password string) (*model.CreateJWTResponse, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LoginUserJWT", ctx, username, password)
-	ret0, _ := ret[0].(*model.CreateJWTResponse)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// LoginUserJWT indicates an expected call of LoginUserJWT.
-func (mr *MockServiceMockRecorder) LoginUserJWT(ctx, username, password interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoginUserJWT", reflect.TypeOf((*MockService)(nil).LoginUserJWT), ctx, username, password)
 }
 
 // Ping mocks base method.
@@ -95,16 +95,16 @@ func (mr *MockServiceMockRecorder) Ping(ctx interface{}) *gomock.Call {
 }
 
 // RegisterUser mocks base method.
-func (m *MockService) RegisterUser(ctx context.Context, user, password string, isAdmin bool) (*model.User, error) {
+func (m *MockService) RegisterUser(ctx context.Context, email, password string) (*model.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterUser", ctx, user, password, isAdmin)
+	ret := m.ctrl.Call(m, "RegisterUser", ctx, email, password)
 	ret0, _ := ret[0].(*model.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RegisterUser indicates an expected call of RegisterUser.
-func (mr *MockServiceMockRecorder) RegisterUser(ctx, user, password, isAdmin interface{}) *gomock.Call {
+func (mr *MockServiceMockRecorder) RegisterUser(ctx, email, password interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterUser", reflect.TypeOf((*MockService)(nil).RegisterUser), ctx, user, password, isAdmin)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterUser", reflect.TypeOf((*MockService)(nil).RegisterUser), ctx, email, password)
 }

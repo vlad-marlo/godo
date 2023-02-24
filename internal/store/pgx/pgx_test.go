@@ -15,15 +15,13 @@ import (
 	"github.com/vlad-marlo/godo/internal/store/pgx/mocks"
 )
 
-const _countOfStorages = 3
-
 func TestNew(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	cli := mocks.NewMockClient(ctrl)
 	p := postgres.TestClient(t).P()
 	l := zap.L()
-	cli.EXPECT().P().Return(p).Times(_countOfStorages)
-	cli.EXPECT().L().Return(l).Times(_countOfStorages)
+	cli.EXPECT().P().Return(p).AnyTimes()
+	cli.EXPECT().L().Return(l).AnyTimes()
 	s, td := testStore(t, cli)
 	assert.Equal(t, l, s.l)
 	assert.Equal(t, p, s.p)
@@ -34,11 +32,15 @@ func TestStore_User(t *testing.T) {
 	cli := postgres.TestClient(t)
 	u := NewUserRepository(cli)
 	g := NewGroupRepository(cli)
-	s := New(cli, u, g)
+	tr := NewTokenRepository(cli)
+	s := New(cli, u, g, tr)
 	assert.Equal(t, u, s.User())
 	assert.Equal(t, s.user, s.User())
 	assert.Equal(t, g, s.Group())
 	assert.Equal(t, g, s.group)
+	assert.Equal(t, tr, s.token)
+	assert.Equal(t, s.token, s.Token())
+	s.Close()
 }
 
 func TestPing(t *testing.T) {

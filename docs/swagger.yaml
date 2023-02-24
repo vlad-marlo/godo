@@ -1,0 +1,160 @@
+basePath: /api/v1
+definitions:
+  model.CreateGroupRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  model.CreateTokenRequest:
+    properties:
+      email:
+        description: Email is user email
+        example: user@example.com
+        type: string
+      password:
+        description: Password is password of user.
+        example: strong_password
+        type: string
+      token-type:
+        example: bearer
+        type: string
+    type: object
+  model.CreateTokenResponse:
+    properties:
+      access_token:
+        type: string
+      token_type:
+        type: string
+    type: object
+  model.Error:
+    properties:
+      error:
+        example: short summary info about error
+        type: string
+      field:
+        example: additional info about error
+        type: string
+    type: object
+  model.RegisterUserRequest:
+    properties:
+      email:
+        description: Email is user email
+        example: user@example.com
+        type: string
+      password:
+        description: Password is password string
+        example: strong_password
+        type: string
+    type: object
+  model.User:
+    properties:
+      email:
+        description: Email is string field of user's email addr.
+        example: user@example.com
+        type: string
+      id:
+        description: ID is user uuid.
+        example: 00000000-0000-0000-0000-000000000000
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    name: API Support
+  description: This is a godo server.
+  title: GODO API
+  version: "1.0"
+paths:
+  /ping:
+    get:
+      consumes:
+      - text/plain
+      operationId: ping
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Запрос состояния сервиса
+      tags:
+      - Ping
+  /users/register:
+    post:
+      consumes:
+      - application/json
+      operationId: user_create
+      parameters:
+      - description: User data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.RegisterUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Error'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.Error'
+      summary: Создание пользователя
+      tags:
+      - UserCreate
+  /users/token:
+    post:
+      consumes:
+      - application/json
+      operationId: login_jwt
+      parameters:
+      - description: User data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.CreateTokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Создание JWT токена для пользователя.
+      tags:
+      - CreateToken
+securityDefinitions:
+  BasicAuth:
+    type: basic
+swagger: "2.0"

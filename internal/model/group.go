@@ -10,9 +10,9 @@ type (
 	Group struct {
 		ID          uuid.UUID
 		Name        string
-		CreatedBy   uuid.UUID
 		Description string
 		CreatedAt   time.Time
+		Owner       uuid.UUID
 	}
 
 	// CreateGroupRequest ...

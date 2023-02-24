@@ -3,15 +3,20 @@ package middleware
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/vlad-marlo/godo/internal/pkg/fielderr"
 	"go.uber.org/zap"
 	"net/http"
 	"strings"
 )
 
+// Service provide getting user from token.
 type Service interface {
 	GetUserFromToken(ctx context.Context, t string) (string, error)
 }
+
+const reqIDField = "request_id"
 
 // userInCtxKey is key for context to store and get access to user data.
 type userInCtxKey struct{}
@@ -24,27 +29,37 @@ func AuthChecker(srv Service) func(next http.Handler) http.Handler {
 			token := r.Header.Get("authorization")
 			reqID := middleware.GetReqID(r.Context())
 
-			if !strings.Contains("Bearer ", token) {
+			if !strings.Contains("Bearer ", token) && !strings.Contains("Authorization ", token) {
 				w.WriteHeader(http.StatusUnauthorized)
 
 				_, err := w.Write([]byte(http.StatusText(http.StatusUnauthorized)))
 				if err != nil {
-					zap.L().Error("http: ResponseWriter: Write", zap.Error(err), zap.String("request_id", reqID))
+					zap.L().Error("http: ResponseWriter: Write", zap.Error(err), zap.String(reqIDField, reqID))
 				}
+
 				return
 			}
 
-			token = strings.TrimPrefix("Bearer ", token)
-
 			u, err := srv.GetUserFromToken(r.Context(), token)
 			if err != nil {
-				zap.L().Debug("get user from token", zap.Error(err), zap.String("request_id", reqID))
+
+				if fErr, ok := err.(*fielderr.Error); ok {
+					zap.L().Debug("get user from token", append(fErr.Fields(), zap.Error(err), zap.String(reqIDField, reqID))...)
+					if err = json.NewEncoder(w).Encode(fErr.Data()); err != nil {
+						zap.L().Error("encode data", zap.Error(err))
+					}
+					return
+				}
+
+				zap.L().Debug("get user from token", zap.Error(err), zap.String(reqIDField, reqID))
 
 				w.WriteHeader(http.StatusUnauthorized)
+
 				_, err = w.Write([]byte(http.StatusText(http.StatusUnauthorized)))
 				if err != nil {
-					zap.L().Error("http: ResponseWriter: Write", zap.Error(err), zap.String("request_id", reqID))
+					zap.L().Error("http: ResponseWriter: Write", zap.Error(err), zap.String(reqIDField, reqID))
 				}
+
 				return
 			}
 
