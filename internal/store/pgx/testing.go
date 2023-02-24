@@ -76,9 +76,7 @@ func testUsers(t testing.TB) (*UserRepository, func()) {
 	s := NewUserRepository(cli)
 
 	return s, func() {
-		defer cli.Close()
-		_, err := s.p.Exec(context.Background(), fmt.Sprintf(`TRUNCATE users CASCADE;`))
-		assert.NoError(t, err)
+		teardown(t, cli)("users")
 	}
 }
 
@@ -89,9 +87,7 @@ func testGroup(t testing.TB) (*GroupRepository, func()) {
 	s := NewGroupRepository(cli)
 
 	return s, func() {
-		defer cli.Close()
-		_, err := s.pool.Exec(context.Background(), fmt.Sprintf(`TRUNCATE groups CASCADE;`))
-		assert.NoError(t, err)
+		teardown(t, cli)("groups")
 	}
 }
 
@@ -103,9 +99,20 @@ func testGroupUser(t testing.TB) (*GroupRepository, *UserRepository, func()) {
 	usr := NewUserRepository(cli)
 
 	return grp, usr, func() {
+		teardown(t, cli)("users, groups")
+	}
+}
+
+func teardown(t testing.TB, cli *postgres.Client) func(...string) {
+	return func(tables ...string) {
 		defer cli.Close()
-		_, err := cli.P().Exec(context.Background(), "TRUNCATE users, groups CASCADE;")
-		assert.NoError(t, err)
+		if len(tables) > 1 {
+			_, err := cli.P().Exec(context.Background(), fmt.Sprintf(`TRUNCATE %s CASCADE;`, strings.Join(tables, ", ")))
+			assert.NoError(t, err)
+		} else if len(tables) == 1 {
+			_, err := cli.P().Exec(context.Background(), fmt.Sprintf(`TRUNCATE %s CASCADE;`, tables[0]))
+			assert.NoError(t, err)
+		}
 	}
 }
 
@@ -119,4 +126,10 @@ func BadCli(t testing.TB) Client {
 
 	cli.EXPECT().P().Return(pool).AnyTimes()
 	return cli
+}
+
+func testRole(t testing.TB) (*RoleRepository, func(...string)) {
+	cli := postgres.TestClient(t)
+	role := NewRoleRepository(cli)
+	return role, teardown(t, cli)
 }

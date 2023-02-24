@@ -17,6 +17,18 @@ import (
 	"go.uber.org/zap"
 )
 
+//	@title			GODO API
+//	@version		1.0
+//	@description	This is a godo server.
+
+//	@contact.name	API Support
+
+//	@host		localhost:8080
+//	@BasePath	/api/v1
+
+//	@securityDefinitions.basic	BasicAuth
+
+// @externalDocs.description	OpenAPI
 func main() {
 	fx.New(CreateApp()).Run()
 }
@@ -45,20 +57,26 @@ func CreateApp() fx.Option {
 			pgx.NewUserRepository,
 			httpctrl.New,
 		),
-		//fx.WithLogger(ZapEventLogger),
+		fx.WithLogger(ZapEventLogger),
 		fx.Invoke(
 			ValidateConfig,
 			StartHTTPServer,
 			CheckClient,
 			StartGRPCServer,
 			LoggerSyncer,
+			LogConfig,
 		),
 	)
 }
 
+func LogConfig(logger *zap.Logger, cfg *config.Config) {
+	logger.Info("starting with config", zap.Any("config", cfg))
+}
+
 // ZapEventLogger return new event logger for fx application.
 func ZapEventLogger(logger *zap.Logger) fxevent.Logger {
-	return &fxevent.ZapLogger{Logger: logger}
+	//return &fxevent.ZapLogger{Logger: logger}
+	return &fxevent.NopLogger
 }
 
 // StartHTTPServer is starting http server if must.

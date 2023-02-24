@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"go.uber.org/zap/zapcore"
 	"net"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/crypto/acme/autocert"
 
+	_ "github.com/vlad-marlo/godo/docs"
 	"github.com/vlad-marlo/godo/internal/config"
 	mw "github.com/vlad-marlo/godo/internal/controller/http/middleware"
 	"github.com/vlad-marlo/godo/internal/model"
@@ -134,6 +136,16 @@ func (s *Server) configureMW() {
 
 // configureRoutes ...
 func (s *Server) configureRoutes() {
+	var prefix string
+	if s.cfg.HTTPS.KeyFile == "" || s.cfg.HTTPS.CertFile == "" || len(s.cfg.HTTPS.AllowedHosts) == 0 {
+		prefix = "http"
+	} else {
+		prefix = "https"
+	}
+
+	s.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL(fmt.Sprintf("%s://%s:%d/swagger/doc.json", prefix, s.cfg.Server.Addr, s.cfg.Server.Port)),
+	))
 	s.Route("/api/v1", func(r chi.Router) {
 		r.HandleFunc("/ping", s.Ping)
 		r.Route("/users", func(r chi.Router) {

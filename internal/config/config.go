@@ -40,8 +40,8 @@ type (
 	// Server is internal configuration of server.
 	Server struct {
 		Type       string `env:"SERVER_TYPE" toml:"type" valid:"in(grpc|http|https|GRPC|HTTP|HTTPS)" envDefault:"HTTP"`
-		EnableHTTP bool
-		EnableGRPC bool
+		EnableHTTP bool   `toml:"-"`
+		EnableGRPC bool   `toml:"-"`
 		Salt       string `env:"ENCRYPT_SALT" valid:"required~use generated salt from the logs" toml:"salt"`
 		SecretKey  string `env:"SECRET_KEY" valid:"required" toml:"secret_key"`
 		IsDev      bool   `env:"IS_DEV" toml:"is_dev"`
@@ -61,7 +61,7 @@ type (
 		Postgres Postgres
 		HTTPS    HTTPS
 		Server   Server
-		Test     Test
+		Test     Test `toml:"-"`
 		Auth     Auth
 	}
 )
@@ -94,6 +94,8 @@ func New() *Config {
 
 // initConfig creates new config instance. Should be called just once. Always use sync.Once to access to this function.
 func initConfig() {
+	l, _ := zap.NewProduction()
+	zap.ReplaceGlobals(l)
 	c = &Config{}
 	if err := env.Parse(c); err != nil {
 		log.Fatalf("env: parse: %v", err)
@@ -125,20 +127,23 @@ func initConfig() {
 		c.Server.EnableGRPC = true
 	}
 
-	if !c.Test.Enable && useFileConfig {
+	if useFileConfig {
+		zap.L().Info("parsing cfg from file")
 		ex, err := os.Executable()
 		if err == nil {
-			absCPath := path.Join(path.Dir(ex), configPath)
+			configPath = path.Join(path.Dir(ex), configPath)
 
-			if err := c.ParseFromFile(absCPath); err != nil {
+			if err := c.ParseFromFile(configPath); err != nil {
 				zap.L().Info("config: parse from file", zap.Error(err))
 			}
-			if err := c.WriteToFile(absCPath); err != nil {
+			c.setDefaultVars()
+			if err := c.WriteToFile(configPath); err != nil {
 				zap.L().Info("config: write to file", zap.Error(err))
 			}
+		} else {
+			zap.L().Info("get os executable", zap.Error(err))
 		}
 	}
-
 	c.setDefaultVars()
 
 }
