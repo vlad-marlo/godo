@@ -164,11 +164,13 @@ func (s *Server) CreateGroup(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.srv.CreateGroup(ctx, user, req.Name, req.Description)
 	if err != nil {
+
 		fErr, ok := err.(*fielderr.Error)
 		if !ok {
 			s.respond(w, http.StatusBadRequest, nil, zap.Error(err), ReqIDField(reqID))
 			return
 		}
+
 		s.respond(w, fErr.CodeHTTP(), fErr.Data(), append(fErr.Fields(), ReqIDField(reqID))...)
 		return
 	}

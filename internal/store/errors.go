@@ -14,5 +14,7 @@ var (
 	ErrUnknown             = errors.New("unknown error")
 	ErrTokenIsExpired      = errors.New("token is expired")
 	ErrTokenAlreadyExists  = errors.New("token already exists")
-	ErrInviteIsAlreadyUsed = errors.New("")
+	ErrTaskAlreadyExists   = errors.New("task already exists")
+	ErrInviteIsAlreadyUsed = errors.New("invite was already used")
+	ErrPermissionDenied    = errors.New("user has no rights")
 )

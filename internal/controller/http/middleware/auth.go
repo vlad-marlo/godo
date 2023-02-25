@@ -63,10 +63,13 @@ func AuthChecker(srv Service) func(next http.Handler) http.Handler {
 				return
 			}
 
-			r = r.WithContext(context.WithValue(r.Context(), userInCtxKey{}, u))
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(w, WithUser(r, u))
 		})
 	}
+}
+
+func WithUser(r *http.Request, u string) *http.Request {
+	return r.WithContext(context.WithValue(r.Context(), userInCtxKey{}, u))
 }
 
 // UserFromCtx must be used with AuthChecker middleware. To get user from request you must pass *http.Request.Context() into func.

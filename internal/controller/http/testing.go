@@ -17,6 +17,7 @@ var (
 	}
 )
 
+// TestServer is helper function that creates http server
 func TestServer(t testing.TB, srv Service) *Server {
 	t.Helper()
 	return &Server{

@@ -179,7 +179,8 @@ func (repo *GroupRepository) GetUsers(ctx context.Context, group, user string) (
 	return ids, nil
 }
 
-func (repo *GroupRepository) UserIn(ctx context.Context, group, user string) (ok bool, err error) {
+// UserExists ...
+func (repo *GroupRepository) UserExists(ctx context.Context, group, user string) (ok bool, err error) {
 	if err = repo.pool.QueryRow(ctx, `SELECT EXISTS(SELECT * FROM user_in_group WHERE group_id = $1 AND user_id = $2);`, group, user).Scan(&ok); err != nil {
 		repo.log.Error("get user existence in group", TraceError(err)...)
 	}
@@ -237,6 +238,48 @@ func (repo *GroupRepository) AddUser(ctx context.Context, invite string, user st
 
 	if err = tx.Commit(ctx); err != nil {
 		repo.log.Error("unexpected error while doing commit transaction: check pgx driver", TraceError(err)...)
+		return fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
+	}
+
+	return nil
+}
+
+func (repo *GroupRepository) AddTask(ctx context.Context, task, group, user string) error {
+	// check role
+	var ok bool
+	if err := repo.pool.QueryRow(
+		ctx,
+		`SELECT EXISTS(SELECT x.user_id, x.group_id
+              FROM user_in_group AS x
+                       INNER JOIN roles r on r.id = x.role_id
+              WHERE r.tasks >= 2
+                AND x.user_id = $1
+                AND x.group_id = $2);`,
+		group,
+		user,
+	).Scan(&ok); err != nil {
+		return fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
+	}
+	if !ok {
+		return store.ErrPermissionDenied
+	}
+
+	if _, err := repo.pool.Exec(ctx, `INSERT INTO task_group(task_id, group_id) VALUES ($1, $2)`, task, group); err != nil {
+		pgErr, ok := err.(*pgconn.PgError)
+		if !ok {
+			return fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
+		}
+
+		switch pgErr.Code {
+
+		case pgerrcode.UniqueViolation:
+			return store.ErrTaskAlreadyExists
+
+		case pgerrcode.ForeignKeyViolation, pgerrcode.InvalidForeignKey:
+			return store.ErrBadData
+		}
+
+		repo.log.Error("add task to group", TraceError(err)...)
 		return fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
 	}
 
