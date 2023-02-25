@@ -179,6 +179,13 @@ func (repo *GroupRepository) GetUsers(ctx context.Context, group, user string) (
 	return ids, nil
 }
 
+func (repo *GroupRepository) UserIn(ctx context.Context, group, user string) (ok bool, err error) {
+	if err = repo.pool.QueryRow(ctx, `SELECT EXISTS(SELECT * FROM user_in_group WHERE group_id = $1 AND user_id = $2);`, group, user).Scan(&ok); err != nil {
+		repo.log.Error("get user existence in group", TraceError(err)...)
+	}
+	return
+}
+
 // AddUser ...
 func (repo *GroupRepository) AddUser(ctx context.Context, invite string, user string) error {
 	tx, err := repo.pool.Begin(ctx)

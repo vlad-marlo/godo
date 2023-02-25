@@ -26,7 +26,7 @@ import (
 //	@host		localhost:8080
 //	@BasePath	/api/v1
 
-//	@securityDefinitions.basic	BasicAuth
+//	@securityDefinitions.basic	BasicAuth on
 
 // @externalDocs.description	OpenAPI
 func main() {

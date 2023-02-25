@@ -10,6 +10,7 @@ import (
 	"github.com/vlad-marlo/godo/internal/controller/http/mocks"
 	"github.com/vlad-marlo/godo/internal/model"
 	"github.com/vlad-marlo/godo/internal/pkg/fielderr"
+	"github.com/vlad-marlo/godo/internal/service"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -124,4 +125,62 @@ func TestServer_RegisterUser(t *testing.T) {
 	expected, err := json.Marshal(data)
 	require.NoError(t, err)
 	assert.JSONEq(t, string(expected), w.Body.String())
+}
+
+func TestServer_Ping_FieldErr(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv := mocks.NewMockService(ctrl)
+	fErr := service.ErrPasswordToLong
+	srv.EXPECT().Ping(gomock.Any()).Return(fErr)
+	s := TestServer(t, srv)
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/", nil)
+	s.Ping(w, r)
+	defer assert.NoError(t, r.Body.Close())
+	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
+
+	assert.Equal(t, fErr.CodeHTTP(), res.StatusCode)
+
+	data, err := json.Marshal(fErr.Data())
+	require.NoError(t, err)
+	assert.JSONEq(t, string(data), w.Body.String())
+}
+
+func TestServer_Ping_NilErr(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv := mocks.NewMockService(ctrl)
+	srv.EXPECT().Ping(gomock.Any()).Return(nil)
+	s := TestServer(t, srv)
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/", nil)
+	s.Ping(w, r)
+	defer assert.NoError(t, r.Body.Close())
+	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
+
+	assert.Equal(t, "", w.Body.String())
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestServer_Ping_UnknownErr(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv := mocks.NewMockService(ctrl)
+	srv.EXPECT().Ping(gomock.Any()).Return(errors.New(""))
+	s := TestServer(t, srv)
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/", nil)
+	s.Ping(w, r)
+	defer assert.NoError(t, r.Body.Close())
+	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
+
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+
+	data, err := json.Marshal(http.StatusText(http.StatusInternalServerError))
+	require.NoError(t, err)
+	assert.JSONEq(t, string(data), w.Body.String())
 }

@@ -20,13 +20,13 @@ func newLoggingRW(w http.ResponseWriter) *loggingRW {
 	return &loggingRW{w, http.StatusOK}
 }
 
-// WriteHeader ...
+// WriteHeader changing internal field and writes code to header.
 func (l *loggingRW) WriteHeader(code int) {
 	l.statusCode = code
 	l.ResponseWriter.WriteHeader(code)
 }
 
-// LogRequest ...
+// LogRequest return middleware function that will log meta info about every request to logger used in initializing mw.
 func LogRequest(logger *zap.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

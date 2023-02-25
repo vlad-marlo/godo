@@ -22,6 +22,10 @@ import (
 	"github.com/vlad-marlo/godo/internal/model"
 )
 
+var (
+	ErrNilPointer = errors.New("nil pointer reference")
+)
+
 type Service interface {
 	// Ping checks access to server.
 	Ping(ctx context.Context) error
@@ -69,13 +73,16 @@ func New(srv Service, cfg *config.Config, log *zap.Logger) *Server {
 
 // Stop graceful stops HTTP server.
 func (s *Server) Stop(ctx context.Context) error {
+	if s == nil {
+		return ErrNilPointer
+	}
 	return s.http.Shutdown(ctx)
 }
 
 // Start starts HTTP server.
 func (s *Server) Start(context.Context) error {
 	if s == nil {
-		return fmt.Errorf("unexpectly nil controller")
+		return ErrNilPointer
 	}
 	if s.cfg.HTTPS.CertFile == "" || s.cfg.HTTPS.KeyFile == "" || len(s.cfg.HTTPS.AllowedHosts) == 0 {
 		return s.startHTTP()
@@ -150,7 +157,7 @@ func (s *Server) configureRoutes() {
 	}
 
 	s.Get("/swagger/*", httpSwagger.Handler(
-		httpSwagger.URL(fmt.Sprintf("%s://%s:%d/swagger/doc.json", prefix, s.cfg.Server.Addr, s.cfg.Server.Port)),
+		httpSwagger.URL(fmt.Sprintf("%s://%s:%d/docs/doc.json", prefix, s.cfg.Server.Addr, s.cfg.Server.Port)),
 	))
 	s.Route("/api/v1", func(r chi.Router) {
 		r.HandleFunc("/ping", s.Ping)
