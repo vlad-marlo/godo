@@ -140,7 +140,9 @@ func (s *Server) Ping(w http.ResponseWriter, r *http.Request) {
 //
 // Success 201 {object} model.CreateGroupResponse
 // Failure 400 {object} model.Error
-// Failure 401
+// Failure 401 {object} model.Error
+// Failure 409 {object} model.Error
+// Failure 500 {object} model.Error
 //
 //	@securityDefinitions.apikey	ApiKeyAuth
 func (s *Server) CreateGroup(w http.ResponseWriter, r *http.Request) {

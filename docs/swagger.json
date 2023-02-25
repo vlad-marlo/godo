@@ -8,7 +8,7 @@
         },
         "version": "1.0"
     },
-    "host": "0.0.0.0:8080",
+    "host": "localhost:8080",
     "basePath": "/api/v1",
     "paths": {
         "/ping": {
@@ -232,7 +232,7 @@
         }
     },
     "securityDefinitions": {
-        "BasicAuth": {
+        "BasicAuth on": {
             "type": "basic"
         }
     }

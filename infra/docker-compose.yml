@@ -15,7 +15,7 @@ services:
     build: ..
     restart: always
     ports:
-      - "8080:8080"
+      - 8080:8080
     volumes:
       - docs:/app/docs/
     depends_on:
@@ -25,7 +25,7 @@ services:
   nginx:
     image: nginx:1.21.3-alpine
     ports:
-      - "80:80"
+      - 80:80
 
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf

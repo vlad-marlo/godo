@@ -33,4 +33,7 @@ test_migrate:
 lines:
 	git ls-files | xargs wc -l
 
+.PHONY: dock
+dock:
+	docker-compose
 .DEFAULT_GOAL := build
