@@ -233,6 +233,20 @@ func (m *MockTaskRepository) EXPECT() *MockTaskRepositoryMockRecorder {
 	return m.recorder
 }
 
+// Create mocks base method.
+func (m *MockTaskRepository) Create(ctx context.Context, task *model.Task) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Create", ctx, task)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Create indicates an expected call of Create.
+func (mr *MockTaskRepositoryMockRecorder) Create(ctx, task interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockTaskRepository)(nil).Create), ctx, task)
+}
+
 // MockStore is a mock of Store interface.
 type MockStore struct {
 	ctrl     *gomock.Controller

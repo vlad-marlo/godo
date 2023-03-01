@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/vlad-marlo/godo/internal/model"
 	"github.com/vlad-marlo/godo/internal/service"
@@ -28,7 +29,7 @@ func TestService_CreateGroup_Positive(t *testing.T) {
 
 	ctx := context.Background()
 
-	resp, err := srv.CreateGroup(ctx, TestGroup1.Owner.String(), TestGroup1.Name, TestGroup1.Description)
+	resp, err := srv.CreateGroup(ctx, TestGroup1.Owner, TestGroup1.Name, TestGroup1.Description)
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 
@@ -46,7 +47,7 @@ func TestService_CreateGroup_Negative_ErrGroupAlreadyExists(t *testing.T) {
 
 	srv := testService(t, str)
 
-	resp, err := srv.CreateGroup(context.Background(), TestGroup1.Owner.String(), TestGroup1.Name, TestGroup1.Description)
+	resp, err := srv.CreateGroup(context.Background(), TestGroup1.Owner, TestGroup1.Name, TestGroup1.Description)
 	assert.Nil(t, resp)
 	assert.ErrorIs(t, err, service.ErrGroupAlreadyExists)
 }
@@ -56,8 +57,8 @@ func TestService_CreateGroup_BadUser(t *testing.T) {
 	str := mocks.NewMockStore(ctrl)
 	srv := testService(t, str)
 
-	resp, err := srv.CreateGroup(context.Background(), "sdaf", TestGroup1.Name, TestGroup1.Description)
-	assert.ErrorIs(t, err, service.ErrInternal)
+	resp, err := srv.CreateGroup(context.Background(), uuid.Nil, TestGroup1.Name, TestGroup1.Description)
+	assert.ErrorIs(t, err, service.ErrBadUser)
 	assert.Nil(t, resp)
 }
 
@@ -70,7 +71,7 @@ func TestService_CreateGroup_BadRequest(t *testing.T) {
 	str.EXPECT().Group().Return(grp)
 
 	srv := testService(t, str)
-	resp, err := srv.CreateGroup(context.Background(), TestGroup1.Owner.String(), TestGroup1.Name, TestGroup1.Description)
+	resp, err := srv.CreateGroup(context.Background(), TestGroup1.Owner, TestGroup1.Name, TestGroup1.Description)
 	assert.Nil(t, resp)
 	assert.ErrorIs(t, err, service.ErrInternal)
 }

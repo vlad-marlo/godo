@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/google/uuid"
 	"github.com/vlad-marlo/godo/internal/pkg/fielderr"
 	"go.uber.org/zap"
 	"net/http"
@@ -13,7 +14,7 @@ import (
 
 // Service provide getting user from token.
 type Service interface {
-	GetUserFromToken(ctx context.Context, t string) (string, error)
+	GetUserFromToken(ctx context.Context, t string) (uuid.UUID, error)
 }
 
 const reqIDField = "request_id"
@@ -68,11 +69,11 @@ func AuthChecker(srv Service) func(next http.Handler) http.Handler {
 	}
 }
 
-func WithUser(r *http.Request, u string) *http.Request {
+func WithUser(r *http.Request, u uuid.UUID) *http.Request {
 	return r.WithContext(context.WithValue(r.Context(), userInCtxKey{}, u))
 }
 
 // UserFromCtx must be used with AuthChecker middleware. To get user from request you must pass *http.Request.Context() into func.
-func UserFromCtx(ctx context.Context) string {
-	return ctx.Value(userInCtxKey{}).(string)
+func UserFromCtx(ctx context.Context) uuid.UUID {
+	return ctx.Value(userInCtxKey{}).(uuid.UUID)
 }

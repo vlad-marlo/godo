@@ -59,6 +59,13 @@ var (
 		},
 		fielderr.CodeUnauthorized,
 	)
+	ErrBadUser = fielderr.New(
+		"bad user id",
+		map[string]string{
+			"user": "check auth credentials",
+		},
+		fielderr.CodeUnauthorized,
+	)
 	ErrGroupAlreadyExists = fielderr.New(
 		"group already exists",
 		map[string]string{

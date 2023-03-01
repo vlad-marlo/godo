@@ -181,12 +181,26 @@ func (s *Server) CreateGroup(w http.ResponseWriter, r *http.Request) {
 
 // InviteUser create new invite link.
 //
-// @Tags InviteUser
-// @Summary создание приглашения в группу.
-// @ID invite_user
-// @Accept json
-// @Produce json
+//	@Tags		InviteUser
+//	@Summary	создание приглашения в группу.
+//	@ID			invite_user
+//	@Accept		json
+//	@Produce	json
+//
 // Param request body model.InviteUserRequest true "invite data"
+//
+// Success 201 {object} model.InviteUserResponse
+// Failure 400 {object} model.Error
+// Failure 401 {object} model.Error
+// Failure 403 {object} model.Error
+// Failure 409 {object} model.Error
+// Failure 500 {object} model.Error
 func (s *Server) InviteUser(w http.ResponseWriter, r *http.Request) {
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, r.Body); err != nil {
+		s.internal(w, zap.Error(err))
+	}
+	_ = r.Body.Close()
+	_ = mw.UserFromCtx(r.Context())
 
 }

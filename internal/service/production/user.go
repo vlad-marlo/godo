@@ -109,46 +109,47 @@ func (s *Service) jwtKeyFunc(*jwt.Token) (interface{}, error) {
 }
 
 // GetUserFromToken parses jwt token from raw token string.
-func (s *Service) GetUserFromToken(ctx context.Context, t string) (string, error) {
+func (s *Service) GetUserFromToken(ctx context.Context, t string) (uuid.UUID, error) {
 	if strings.HasPrefix(t, "Bearer ") {
 		return s.getUserFromJWTToken(ctx, t)
 	}
 	if strings.HasPrefix(t, "Authorization ") {
 		return s.getUserFromAuthToken(ctx, t)
 	}
-	return "", service.ErrBadAuthData
+	return uuid.Nil, service.ErrBadAuthData
 }
 
 // getUserFromAuthToken ...
-func (s *Service) getUserFromAuthToken(ctx context.Context, t string) (string, error) {
+func (s *Service) getUserFromAuthToken(ctx context.Context, t string) (uuid.UUID, error) {
 	t = strings.TrimPrefix(t, "Authorization ")
 	u, err := s.store.Token().Get(ctx, t)
 	if err != nil {
-		return "", service.ErrTokenNotValid.With(zap.Error(err))
+		return uuid.Nil, service.ErrTokenNotValid.With(zap.Error(err))
 	}
-	return u.UserID.String(), nil
+	return u.UserID, nil
 }
 
 // getUserFromJWTToken ...
-func (s *Service) getUserFromJWTToken(ctx context.Context, t string) (string, error) {
+func (s *Service) getUserFromJWTToken(ctx context.Context, t string) (uuid.UUID, error) {
 	t = strings.TrimPrefix(t, "Bearer ")
 	token, err := jwt.ParseWithClaims(t, &jwt.RegisteredClaims{}, s.jwtKeyFunc)
 	if err != nil {
-		return "", service.ErrInternal.With(zap.Error(fmt.Errorf("parse jwt: %w", err)))
+		return uuid.Nil, service.ErrInternal.With(zap.Error(fmt.Errorf("parse jwt: %w", err)))
 	}
 
 	if !token.Valid {
-		return "", service.ErrTokenNotValid
+		return uuid.Nil, service.ErrTokenNotValid
 	}
 
 	claims, ok := token.Claims.(*jwt.RegisteredClaims)
 	if !ok {
-		return "", service.ErrTokenNotValid
+		return uuid.Nil, service.ErrTokenNotValid
 	}
 
-	u := claims.Subject
-	if !s.store.User().Exists(ctx, u) {
-		return "", service.ErrTokenNotValid
+	var u uuid.UUID
+	u, err = uuid.Parse(claims.Subject)
+	if !s.store.User().Exists(ctx, u.String()) {
+		return uuid.Nil, service.ErrTokenNotValid
 	}
 	return u, nil
 }
