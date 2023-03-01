@@ -2,18 +2,18 @@
 build:
 	go build --o server cmd/server/main.go
 
-.PHONY: test
-test:
+.PHONY: t
+t:
 	go generate ./...
 	tern migrate -c migrations/tern.conf -m migrations --database godo_test
 	go test --v ./... --count=1  -coverpkg=./internal/... -coverprofile=coverage.out
 
-.PHONY: cover
-cover:
+.PHONY: c
+c:
 	go tool cover -func coverage.out
 
-.PHONY: generage
-generate:
+.PHONY: gen
+gen:
 	swag fmt
 	swag init -d cmd/server/,internal/controller/http/,internal/model/
 	go generate ./...
@@ -25,8 +25,8 @@ generate:
 migrate:
 	tern migrate -c migrations/tern.conf -m migrations
 
-.PHONY: test_migrate
-test_migrate:
+.PHONY: tm
+tm:
 	tern migrate -c migrations/tern.conf -m migrations --database godo_test
 
 .PHONY: lines

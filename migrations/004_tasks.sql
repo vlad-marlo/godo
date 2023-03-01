@@ -5,6 +5,7 @@ create table tasks
     description text,
     created_at  timestamp default current_timestamp,
     created_by  uuid not null,
+    status text not null default 'NEW',
     constraint created_by_fk foreign key (created_by) references users (id) match full on delete cascade
 );
 create table task_group

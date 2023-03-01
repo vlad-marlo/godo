@@ -15,11 +15,12 @@ var _ store.Store = &Store{}
 
 // Store is implementation of storage Interface.
 type Store struct {
-	p     *pgxpool.Pool
-	l     *zap.Logger
+	pool  *pgxpool.Pool
+	log   *zap.Logger
 	user  *UserRepository
 	group *GroupRepository
 	token *TokenRepository
+	task  *TaskRepository
 }
 
 type Client interface {
@@ -30,13 +31,20 @@ type Client interface {
 }
 
 // New ...
-func New(client Client, user *UserRepository, group *GroupRepository, token *TokenRepository) *Store {
+func New(
+	client Client,
+	user *UserRepository,
+	group *GroupRepository,
+	token *TokenRepository,
+	task *TaskRepository,
+) *Store {
 	return &Store{
-		p:     client.P(),
-		l:     client.L(),
+		pool:  client.P(),
+		log:   client.L(),
 		user:  user,
 		group: group,
 		token: token,
+		task:  task,
 	}
 }
 
@@ -54,13 +62,17 @@ func (store *Store) Token() store.TokenRepository {
 	return store.token
 }
 
+func (store *Store) Task() store.TaskRepository {
+	return store.task
+}
+
 // Ping checks connection to database.
 func (store *Store) Ping(ctx context.Context) error {
-	return store.p.Ping(ctx)
+	return store.pool.Ping(ctx)
 }
 
 func (store *Store) Close() {
 	if store != nil {
-		store.p.Close()
+		store.pool.Close()
 	}
 }

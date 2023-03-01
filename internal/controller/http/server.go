@@ -40,6 +40,7 @@ type Service interface {
 	CreateGroup(ctx context.Context, user, name, description string) (*model.CreateGroupResponse, error)
 }
 
+// Server is idk just do it.
 type Server struct {
 	*chi.Mux
 	cfg     *config.Config
@@ -191,6 +192,7 @@ func (s *Server) respond(w http.ResponseWriter, code int, data interface{}, fiel
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		fields = append(fields, zap.Error(err))
 	}
+
 	if len(fields) > 0 {
 		s.log.Log(lvl, "respond", fields...)
 	}

@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var _ store.GroupRepository = &GroupRepository{}
+var _ store.GroupRepository = (*GroupRepository)(nil)
 
 // GroupRepository ...
 type GroupRepository struct {
@@ -40,18 +40,24 @@ func (repo *GroupRepository) Exists(ctx context.Context, id string) (ok bool) {
 	return ok
 }
 
-// Create ...
+// Create created new record about group.
+//
+// Errors:
+// store.ErrGroupAlreadyExists	group with provided ID/Name already exists;
+// store.ErrBadData bad foreign key to create group;
 func (repo *GroupRepository) Create(ctx context.Context, group *model.Group) error {
 	tx, err := repo.pool.Begin(ctx)
 	if err != nil {
 		repo.log.Error("failed to begin transaction: check pgx driver", TraceError(err)...)
 		return store.ErrUnknown
 	}
+
 	defer func() {
 		if err = tx.Rollback(ctx); err != nil && !errors.Is(err, pgx.ErrTxClosed) {
 			repo.log.Error("failed to rollback transaction: check pgx driver", TraceError(err)...)
 		}
 	}()
+
 	if err = tx.QueryRow(
 		ctx,
 		`INSERT INTO groups(id, name, description, owner) VALUES ($1, $2, $3, $4) RETURNING created_at;`,
@@ -84,12 +90,11 @@ func (repo *GroupRepository) Create(ctx context.Context, group *model.Group) err
 		ctx,
 		`INSERT INTO roles(members, tasks, reviews, "comments")  VALUES (0, 0, 0, 0) ON CONFLICT DO NOTHING;`,
 	); err != nil {
-
 		repo.log.Error("unknown error while creating role", TraceError(err)...)
 		return store.ErrUnknown
 	}
 
-	if _, err := tx.Exec(
+	if _, err = tx.Exec(
 		ctx,
 		`INSERT INTO user_in_group(user_id, group_id, role_id, is_admin)
 VALUES ($1, $2, (SELECT x.id
@@ -98,16 +103,15 @@ VALUES ($1, $2, (SELECT x.id
                    AND x.reviews = 0
                    AND x.members = 0
                    AND x.tasks = 0
-                 LIMIT 1), $3);`,
+                 LIMIT 1), TRUE);`,
 		group.Owner,
 		group.ID,
-		true,
 	); err != nil {
 		repo.log.Error("unknown error while creating record about user in group", TraceError(err)...)
 		return fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
 	}
 
-	if err := tx.Commit(ctx); err != nil {
+	if err = tx.Commit(ctx); err != nil {
 		repo.log.Error("failed to commit transaction: check pgx driver", TraceError(err)...)
 		return store.ErrUnknown
 	}
@@ -115,13 +119,16 @@ VALUES ($1, $2, (SELECT x.id
 	return nil
 }
 
-// Get return group with provided id
+// Get return group with provided id.
+// Errors:
+// store.Unknown - unknown error.
+// store.ErrNotFound - where is no groups with provided id.
 func (repo *GroupRepository) Get(ctx context.Context, id string) (*model.Group, error) {
 	g := new(model.Group)
 
 	if err := repo.pool.QueryRow(
 		ctx,
-		`SELECT id, name, description, created_at, owner FROM groups WHERE id = $1`,
+		`SELECT id, "name", description, created_at, "owner" FROM groups WHERE id = $1`,
 		id,
 	).Scan(
 		&g.ID,
@@ -144,10 +151,15 @@ func (repo *GroupRepository) Get(ctx context.Context, id string) (*model.Group, 
 }
 
 // GetUsers ...
-func (repo *GroupRepository) GetUsers(ctx context.Context, group, user string) ([]uuid.UUID, error) {
+func (repo *GroupRepository) GetUsers(ctx context.Context, group, user string) (res []*model.UserInGroup, err error) {
 	rows, err := repo.pool.Query(
 		ctx,
-		`SELECT user_id FROM user_in_group WHERE group_id = $1 AND EXISTS(SELECT * FROM user_in_group WHERE group_id = $1 AND user_id = $2);`,
+		`SELECT u.id, u.email, uig.is_admin, r.members, r.tasks, r.reviews, r.comments
+FROM user_in_group AS uig
+         JOIN roles AS r on r.id = uig.role_id
+         JOIN users AS u on uig.user_id = u.id
+WHERE group_id = $1
+  AND EXISTS(SELECT * FROM user_in_group WHERE group_id = $1 AND user_id = $2);`,
 		group,
 		user,
 	)
@@ -157,31 +169,35 @@ func (repo *GroupRepository) GetUsers(ctx context.Context, group, user string) (
 		}
 
 		repo.log.Error("unexpected error while doing query", TraceError(err)...)
-		return nil, store.ErrUnknown
+		return nil, Unknown(err)
 	}
 	defer rows.Close()
 
-	var ids []uuid.UUID
 	for rows.Next() {
-		var id uuid.UUID
-		if err = rows.Scan(&id); err != nil {
+		u := new(model.UserInGroup)
+		if err = rows.Scan(&u.UserID, &u.Email, &u.IsAdmin, &u.Members, &u.Tasks, &u.Reviews, &u.Comment); err != nil {
 			repo.log.Error("unknown error while scanning rows", TraceError(err)...)
-			return nil, store.ErrUnknown
+			return nil, Unknown(err)
 		}
-		ids = append(ids, id)
+		res = append(res, u)
 	}
 
 	if err = rows.Err(); err != nil {
 		repo.log.Error("error occurred while reading query", TraceError(err)...)
-		return nil, fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
+		return nil, Unknown(err)
 	}
 
-	return ids, nil
+	return
 }
 
 // UserExists ...
 func (repo *GroupRepository) UserExists(ctx context.Context, group, user string) (ok bool, err error) {
-	if err = repo.pool.QueryRow(ctx, `SELECT EXISTS(SELECT * FROM user_in_group WHERE group_id = $1 AND user_id = $2);`, group, user).Scan(&ok); err != nil {
+	if err = repo.pool.QueryRow(
+		ctx,
+		`SELECT EXISTS(SELECT * FROM user_in_group WHERE group_id = $1 AND user_id = $2);`,
+		group,
+		user,
+	).Scan(&ok); err != nil {
 		repo.log.Error("get user existence in group", TraceError(err)...)
 	}
 	return
@@ -244,26 +260,8 @@ func (repo *GroupRepository) AddUser(ctx context.Context, invite string, user st
 	return nil
 }
 
-func (repo *GroupRepository) AddTask(ctx context.Context, task, group, user string) error {
-	// check role
-	var ok bool
-	if err := repo.pool.QueryRow(
-		ctx,
-		`SELECT EXISTS(SELECT x.user_id, x.group_id
-              FROM user_in_group AS x
-                       INNER JOIN roles r on r.id = x.role_id
-              WHERE r.tasks >= 2
-                AND x.user_id = $1
-                AND x.group_id = $2);`,
-		group,
-		user,
-	).Scan(&ok); err != nil {
-		return fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
-	}
-	if !ok {
-		return store.ErrPermissionDenied
-	}
-
+// AddTask creates
+func (repo *GroupRepository) AddTask(ctx context.Context, task, group string) error {
 	if _, err := repo.pool.Exec(ctx, `INSERT INTO task_group(task_id, group_id) VALUES ($1, $2)`, task, group); err != nil {
 		pgErr, ok := err.(*pgconn.PgError)
 		if !ok {
@@ -281,6 +279,28 @@ func (repo *GroupRepository) AddTask(ctx context.Context, task, group, user stri
 
 		repo.log.Error("add task to group", TraceError(err)...)
 		return fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
+	}
+
+	return nil
+}
+
+func (repo *GroupRepository) CreateInvite(ctx context.Context, invite uuid.UUID, r *model.Role, group string, uses int) error {
+	if _, err := repo.pool.Exec(ctx, `INSERT INTO invites(id, group_id, role_id, use_count)
+VALUES ($1,
+        $2,
+        (SELECT x.id FROM roles x WHERE x.tasks = $4 AND x.members = $5 AND x.reviews = $6 AND x.comments = $7 LIMIT 1),
+        $3);`, invite, group, uses, r.Tasks, r.Members, r.Reviews, r.Comments); err != nil {
+
+		if pgErr, ok := err.(*pgconn.PgError); ok {
+
+			switch pgErr.Code {
+			case pgerrcode.UniqueViolation:
+				return store.ErrUniqueViolation
+			case pgerrcode.ForeignKeyViolation, pgerrcode.InvalidForeignKey:
+				return store.ErrFKViolation
+			}
+		}
+		return Unknown(err)
 	}
 
 	return nil

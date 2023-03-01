@@ -17,6 +17,7 @@ type (
 
 	UserInGroup struct {
 		UserID  uuid.UUID
+		Email   string
 		IsAdmin bool
 		Members int
 		Tasks   int

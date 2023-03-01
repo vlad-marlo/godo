@@ -156,9 +156,11 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "description": {
+                    "description": "Description is additional info about group.\nFor example a Company name or any other meta info.",
                     "type": "string"
                 },
                 "name": {
+                    "description": "Name must be unique string. Name will be used",
                     "type": "string"
                 }
             }

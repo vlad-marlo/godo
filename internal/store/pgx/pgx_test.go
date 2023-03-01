@@ -23,8 +23,8 @@ func TestNew(t *testing.T) {
 	cli.EXPECT().P().Return(p).AnyTimes()
 	cli.EXPECT().L().Return(l).AnyTimes()
 	s, td := testStore(t, cli)
-	assert.Equal(t, l, s.l)
-	assert.Equal(t, p, s.p)
+	assert.Equal(t, l, s.log)
+	assert.Equal(t, p, s.pool)
 	defer td()
 }
 
@@ -33,7 +33,8 @@ func TestStore_User(t *testing.T) {
 	u := NewUserRepository(cli)
 	g := NewGroupRepository(cli)
 	tr := NewTokenRepository(cli)
-	s := New(cli, u, g, tr)
+	taskRepo := NewTaskRepository(cli)
+	s := New(cli, u, g, tr, taskRepo)
 	assert.Equal(t, u, s.User())
 	assert.Equal(t, s.user, s.User())
 	assert.Equal(t, g, s.Group())

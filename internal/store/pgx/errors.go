@@ -1,7 +1,9 @@
 package pgx
 
 import (
+	"fmt"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/vlad-marlo/godo/internal/store"
 	"go.uber.org/zap"
 )
 
@@ -20,4 +22,8 @@ func TraceError(err error) []zap.Field {
 		zap.String("hint", pgErr.Hint),
 		zap.Error(pgErr),
 	}
+}
+
+func Unknown(err error) error {
+	return fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
 }

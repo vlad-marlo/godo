@@ -38,6 +38,11 @@ func (s *Service) CreateGroup(ctx context.Context, user, name, description strin
 		ID:          grp.ID,
 		Name:        name,
 		Description: description,
-		CreatedAt:   grp.CreatedAt.Format(s.cfg.Server.TimeFormat),
+		CreatedAt:   grp.CreatedAt.Unix(),
 	}, nil
+}
+
+func (s *Service) AddUserToGroup() (*model.InviteUserInGroupResponse, error) {
+	//TODO: implement me.
+	panic("not implemented")
 }

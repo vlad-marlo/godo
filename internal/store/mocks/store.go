@@ -102,6 +102,34 @@ func (m *MockGroupRepository) EXPECT() *MockGroupRepositoryMockRecorder {
 	return m.recorder
 }
 
+// AddTask mocks base method.
+func (m *MockGroupRepository) AddTask(ctx context.Context, task, group string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddTask", ctx, task, group)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddTask indicates an expected call of AddTask.
+func (mr *MockGroupRepositoryMockRecorder) AddTask(ctx, task, group interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddTask", reflect.TypeOf((*MockGroupRepository)(nil).AddTask), ctx, task, group)
+}
+
+// AddUser mocks base method.
+func (m *MockGroupRepository) AddUser(ctx context.Context, invite, user string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddUser", ctx, invite, user)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddUser indicates an expected call of AddUser.
+func (mr *MockGroupRepositoryMockRecorder) AddUser(ctx, invite, user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddUser", reflect.TypeOf((*MockGroupRepository)(nil).AddUser), ctx, invite, user)
+}
+
 // Create mocks base method.
 func (m *MockGroupRepository) Create(ctx context.Context, group *model.Group) error {
 	m.ctrl.T.Helper()
@@ -182,6 +210,29 @@ func (mr *MockTokenRepositoryMockRecorder) Get(ctx, token interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockTokenRepository)(nil).Get), ctx, token)
 }
 
+// MockTaskRepository is a mock of TaskRepository interface.
+type MockTaskRepository struct {
+	ctrl     *gomock.Controller
+	recorder *MockTaskRepositoryMockRecorder
+}
+
+// MockTaskRepositoryMockRecorder is the mock recorder for MockTaskRepository.
+type MockTaskRepositoryMockRecorder struct {
+	mock *MockTaskRepository
+}
+
+// NewMockTaskRepository creates a new mock instance.
+func NewMockTaskRepository(ctrl *gomock.Controller) *MockTaskRepository {
+	mock := &MockTaskRepository{ctrl: ctrl}
+	mock.recorder = &MockTaskRepositoryMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockTaskRepository) EXPECT() *MockTaskRepositoryMockRecorder {
+	return m.recorder
+}
+
 // MockStore is a mock of Store interface.
 type MockStore struct {
 	ctrl     *gomock.Controller
@@ -231,6 +282,20 @@ func (m *MockStore) Ping(ctx context.Context) error {
 func (mr *MockStoreMockRecorder) Ping(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ping", reflect.TypeOf((*MockStore)(nil).Ping), ctx)
+}
+
+// Task mocks base method.
+func (m *MockStore) Task() store.TaskRepository {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Task")
+	ret0, _ := ret[0].(store.TaskRepository)
+	return ret0
+}
+
+// Task indicates an expected call of Task.
+func (mr *MockStoreMockRecorder) Task() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Task", reflect.TypeOf((*MockStore)(nil).Task))
 }
 
 // Token mocks base method.

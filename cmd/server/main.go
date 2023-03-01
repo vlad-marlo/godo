@@ -56,6 +56,7 @@ func CreateApp() fx.Option {
 			pgx.NewGroupRepository,
 			pgx.NewUserRepository,
 			pgx.NewTokenRepository,
+			pgx.NewTaskRepository,
 			httpctrl.New,
 		),
 		fx.WithLogger(ZapEventLogger),

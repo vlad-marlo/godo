@@ -50,7 +50,6 @@ type (
 		IsProd     bool   `env:"IS_PRODUCTION" toml:"is_prod"`
 		Port       uint   `env:"BIND_PORT" toml:"port"`
 		Addr       string `env:"BIND_ADDR" toml:"addr"`
-		TimeFormat string `env:"TIME_LAYOUT" toml:"time_layout"`
 	}
 	// Test is a configuration that is using in tests
 	Test struct {
@@ -93,7 +92,6 @@ const (
 	defaultConfigPath  = "configs/config.toml"
 	defaultType        = "http"
 	defaultTokenSize   = 20
-	defaultTimeLayout  = time.RFC3339
 )
 
 func New() *Config {
@@ -214,9 +212,6 @@ func (c *Config) setDefaultVars() {
 	}
 	if c.Server.Type == "" {
 		c.Server.Type = defaultType
-	}
-	if c.Server.TimeFormat == "" {
-		c.Server.TimeFormat = defaultTimeLayout
 	}
 	if c.Auth.AuthTokenSize == 0 {
 		c.Auth.AuthTokenSize = defaultTokenSize

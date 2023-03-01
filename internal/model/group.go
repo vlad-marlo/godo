@@ -17,16 +17,26 @@ type (
 
 	// CreateGroupRequest ...
 	CreateGroupRequest struct {
-		Name        string `json:"name"`
+		// Name must be unique string. Name will be used
+		Name string `json:"name"`
+		// Description is additional info about group.
+		// For example a Company name or any other meta info.
 		Description string `json:"description"`
 	}
 
-	// CreateGroupResponse ...
+	// CreateGroupResponse represents group object that was stored in service.
 	CreateGroupResponse struct {
-		ID          uuid.UUID `json:"id"`
-		Name        string    `json:"name"`
-		Description string    `json:"description"`
-		// time in RFC3339 format
-		CreatedAt string `json:"created_at"`
+		// ID is primary key of group.
+		ID uuid.UUID `json:"id"`
+		// Name is unique name of group.
+		Name string `json:"name"`
+		// Description is short info about group.
+		Description string `json:"description"`
+		// CreatedAt is creation time in UNIX format
+		CreatedAt int64 `json:"created-at"`
+	}
+	InviteUserInGroupResponse struct {
+		Link  string
+		Limit int
 	}
 )

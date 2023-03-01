@@ -14,10 +14,12 @@ import (
 	"github.com/vlad-marlo/godo/internal/store"
 )
 
+var _ store.UserRepository = (*UserRepository)(nil)
+
 // UserRepository ...
 type UserRepository struct {
-	p *pgxpool.Pool
-	l *zap.Logger
+	pool *pgxpool.Pool
+	log  *zap.Logger
 }
 
 // NewUserRepository ...
@@ -36,7 +38,7 @@ func (repo *UserRepository) Create(
 		return store.ErrBadData
 	}
 
-	if _, err := repo.p.Exec(
+	if _, err := repo.pool.Exec(
 		ctx,
 		`INSERT INTO users (id, email, pass) VALUES ($1, $2, $3);`,
 		u.ID,
@@ -48,7 +50,7 @@ func (repo *UserRepository) Create(
 				return store.ErrUserAlreadyExists
 			}
 		}
-		repo.l.Warn("unknown error while creating new user", TraceError(err)...)
+		repo.log.Warn("unknown error while creating new user", TraceError(err)...)
 		return fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
 	}
 
@@ -58,7 +60,7 @@ func (repo *UserRepository) Create(
 // Exists checks if user exist with provided id or username. Returns boolean statement that shows existing of user.
 func (repo *UserRepository) Exists(ctx context.Context, id string) bool {
 	var ok bool
-	_ = repo.p.QueryRow(ctx, `SELECT EXISTS(SELECT * FROM users WHERE id = $1);`, id).Scan(&ok)
+	_ = repo.pool.QueryRow(ctx, `SELECT EXISTS(SELECT * FROM users WHERE id = $1);`, id).Scan(&ok)
 	return ok
 }
 
@@ -66,17 +68,17 @@ func (repo *UserRepository) Exists(ctx context.Context, id string) bool {
 // If user does not exist returns store.ErrNotFound error
 func (repo *UserRepository) GetByEmail(
 	ctx context.Context,
-	username string,
+	email string,
 ) (
-	*model.User,
-	error,
+	u *model.User,
+	err error,
 ) {
-	u := new(model.User)
+	u = new(model.User)
 
-	if err := repo.p.QueryRow(
+	if err = repo.pool.QueryRow(
 		ctx,
 		`SELECT x.id, x.email, x.pass FROM users x WHERE x.email = $1;`,
-		username,
+		email,
 	).Scan(
 		&u.ID,
 		&u.Email,
@@ -85,8 +87,51 @@ func (repo *UserRepository) GetByEmail(
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, store.ErrNotFound
 		}
-		repo.l.Debug("unknown error while getting user", TraceError(err)...)
+
+		repo.log.Debug("unknown error while getting user", TraceError(err)...)
 		return nil, store.ErrUnknown
 	}
+
 	return u, nil
+}
+
+// GetGroups return slice of all user's groups.
+func (repo *UserRepository) GetGroups(ctx context.Context, user string) (res []*model.Group, err error) {
+	q := `SELECT g.id, g.name, g.description, g.created_at
+FROM groups g
+         INNER JOIN user_in_group uig on g.id = uig.group_id
+WHERE uig.user_id = $1;`
+
+	var rows pgx.Rows
+
+	rows, err = repo.pool.Query(ctx, q, user)
+	if err != nil {
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+
+		repo.log.Error("get all user's groups", TraceError(err)...)
+		return nil, Unknown(err)
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		g := new(model.Group)
+
+		if err = rows.Scan(&g.ID, &g.Name, &g.Description, &g.CreatedAt); err != nil {
+			repo.log.Error("scan group", TraceError(err)...)
+			return nil, Unknown(err)
+		}
+
+		res = append(res, g)
+	}
+
+	if err = rows.Err(); err != nil {
+		repo.log.Error("unexpected error got from rows.Err()", TraceError(err)...)
+		return nil, Unknown(err)
+	}
+
+	return res, nil
 }

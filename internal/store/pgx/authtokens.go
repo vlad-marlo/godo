@@ -15,20 +15,20 @@ import (
 )
 
 type TokenRepository struct {
-	p *pgxpool.Pool
-	l *zap.Logger
+	pool *pgxpool.Pool
+	log  *zap.Logger
 }
 
 // NewTokenRepository is constructor of token repository.
 func NewTokenRepository(cli Client) *TokenRepository {
 	return &TokenRepository{
-		p: cli.P(),
-		l: cli.L(),
+		pool: cli.P(),
+		log:  cli.L(),
 	}
 }
 
 func (repo *TokenRepository) Create(ctx context.Context, token *model.Token) error {
-	if _, err := repo.p.Exec(
+	if _, err := repo.pool.Exec(
 		ctx,
 		`INSERT INTO auth_tokens(user_id, token, expires_at, expires) VALUES ($1, $2, $3, $4);`,
 		token.UserID,
@@ -41,7 +41,7 @@ func (repo *TokenRepository) Create(ctx context.Context, token *model.Token) err
 				return store.ErrTokenAlreadyExists
 			}
 		}
-		repo.l.Error("unknown error while creating new user token", TraceError(err)...)
+		repo.log.Error("unknown error while creating new user token", TraceError(err)...)
 		return fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
 	}
 	return nil
@@ -50,7 +50,7 @@ func (repo *TokenRepository) Create(ctx context.Context, token *model.Token) err
 // Get return token with provided body.
 func (repo *TokenRepository) Get(ctx context.Context, token string) (*model.Token, error) {
 	var t model.Token
-	if err := repo.p.QueryRow(
+	if err := repo.pool.QueryRow(
 		ctx,
 		`SELECT user_id, expires, expires_at FROM auth_tokens WHERE token = $1;`,
 		token,
@@ -58,7 +58,7 @@ func (repo *TokenRepository) Get(ctx context.Context, token string) (*model.Toke
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, store.ErrNotFound
 		}
-		repo.l.Error("unexpected error while getting user by token", TraceError(err)...)
+		repo.log.Error("unexpected error while getting user by token", TraceError(err)...)
 		return nil, fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
 	}
 

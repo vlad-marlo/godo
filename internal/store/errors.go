@@ -16,5 +16,6 @@ var (
 	ErrTokenAlreadyExists  = errors.New("token already exists")
 	ErrTaskAlreadyExists   = errors.New("task already exists")
 	ErrInviteIsAlreadyUsed = errors.New("invite was already used")
-	ErrPermissionDenied    = errors.New("user has no rights")
+	ErrUniqueViolation     = errors.New("unique violation")
+	ErrFKViolation         = errors.New("foreign key violation")
 )

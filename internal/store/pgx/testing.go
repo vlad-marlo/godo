@@ -19,7 +19,19 @@ import (
 	"github.com/vlad-marlo/godo/internal/pkg/client/postgres"
 )
 
-var _dbTables = []string{"users", "groups", "auth_tokens", "comments", "reviews", "roles", "task_group", "task_user", "tasks", "user_in_group", "invites"}
+var _dbTables = []string{
+	"users",
+	"groups",
+	"auth_tokens",
+	"comments",
+	"reviews",
+	"roles",
+	"task_group",
+	"task_user",
+	"tasks",
+	"user_in_group",
+	"invites",
+}
 
 var (
 	TestUser1 = &model.User{
@@ -80,10 +92,9 @@ func testStore(t testing.TB, cli Client) (*Store, func()) {
 	userRepo := NewUserRepository(cli)
 	groupRepo := NewGroupRepository(cli)
 	tokenRepo := NewTokenRepository(cli)
-	s := New(cli, userRepo, groupRepo, tokenRepo)
-	return s, func() {
-		teardown(t, cli)(_dbTables...)
-	}
+	taskRepo := NewTaskRepository(cli)
+	s := New(cli, userRepo, groupRepo, tokenRepo, taskRepo)
+	return s, func() { teardown(t, cli)(_dbTables...) }
 }
 
 // testUsers ...

@@ -3,8 +3,12 @@ definitions:
   model.CreateGroupRequest:
     properties:
       description:
+        description: |-
+          Description is additional info about group.
+          For example a Company name or any other meta info.
         type: string
       name:
+        description: Name must be unique string. Name will be used
         type: string
     type: object
   model.CreateTokenRequest:

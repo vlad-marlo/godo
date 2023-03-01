@@ -131,11 +131,11 @@ func (s *Server) Ping(w http.ResponseWriter, r *http.Request) {
 
 // CreateGroup create new group.
 //
-//	@tags						CreateGroup
-//	@summary					Создание группы пользователей
+//	@Tags						CreateGroup
+//	@Summary					Создание группы пользователей
 //	@ID							group_create
 //	@Accept						json
-//	@produce					json
+//	@Produce					json
 //	@Param						request	body	model.CreateGroupRequest	true	"group data"
 //
 // Success 201 {object} model.CreateGroupResponse
@@ -177,4 +177,16 @@ func (s *Server) CreateGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.respond(w, http.StatusCreated, resp, ReqIDField(reqID))
+}
+
+// InviteUser create new invite link.
+//
+// @Tags InviteUser
+// @Summary создание приглашения в группу.
+// @ID invite_user
+// @Accept json
+// @Produce json
+// Param request body model.InviteUserRequest true "invite data"
+func (s *Server) InviteUser(w http.ResponseWriter, r *http.Request) {
+
 }
