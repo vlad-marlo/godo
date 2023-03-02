@@ -184,3 +184,99 @@ func TestServer_Ping_UnknownErr(t *testing.T) {
 	require.NoError(t, err)
 	assert.JSONEq(t, string(data), w.Body.String())
 }
+
+func TestServer_CreateToken_MainPositive(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv := mocks.NewMockService(ctrl)
+	resp := &model.CreateTokenResponse{
+		TokenType:   "authorization",
+		AccessToken: "jklsadfhlsadfhjksadjlhf",
+	}
+	srv.EXPECT().CreateToken(gomock.Any(), TestTokenRequest.Email, TestTokenRequest.Password, TestTokenRequest.TokenType).Return(resp, nil)
+	s := TestServer(t, srv)
+
+	w := httptest.NewRecorder()
+	body, err := json.Marshal(TestTokenRequest)
+	require.NoError(t, err)
+	r := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(body))
+	defer assert.NoError(t, r.Body.Close())
+
+	s.CreateToken(w, r)
+
+	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
+
+	assert.Equal(t, http.StatusCreated, res.StatusCode)
+	want, err := json.Marshal(resp)
+	require.NoError(t, err)
+	assert.JSONEq(t, string(want), w.Body.String())
+}
+
+func TestServer_CreateToken_Bad(t *testing.T) {
+	body, err := json.Marshal(TestTokenRequest)
+	require.NoError(t, err)
+
+	tt := []struct {
+		name   string
+		srvErr error
+	}{
+		{"internal", service.ErrInternal},
+		{"unknown", errors.New("")},
+	}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			srv := mocks.NewMockService(ctrl)
+			srv.EXPECT().CreateToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, tc.srvErr)
+			s := TestServer(t, srv)
+
+			w := httptest.NewRecorder()
+
+			r := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(body))
+			defer assert.NoError(t, r.Body.Close())
+
+			s.CreateToken(w, r)
+
+			res := w.Result()
+			defer assert.NoError(t, res.Body.Close())
+
+			if fErr, ok := tc.srvErr.(*fielderr.Error); ok {
+				assert.Equal(t, fErr.CodeHTTP(), res.StatusCode)
+				var data []byte
+				data, err = json.Marshal(http.StatusText(fErr.CodeHTTP()))
+				require.NoError(t, err)
+				if fErr.Data() != nil {
+					data, err = json.Marshal(fErr.Data())
+				}
+				assert.JSONEq(t, string(data), w.Body.String())
+			} else {
+				assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+				var data []byte
+				data, err = json.Marshal(http.StatusText(http.StatusInternalServerError))
+				require.NoError(t, err)
+				assert.JSONEq(t, string(data), w.Body.String())
+			}
+		})
+	}
+}
+
+func TestServer_CreateToken(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv := mocks.NewMockService(ctrl)
+	s := TestServer(t, srv)
+
+	w := httptest.NewRecorder()
+
+	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("[{d}:"))
+	defer assert.NoError(t, r.Body.Close())
+
+	s.CreateToken(w, r)
+
+	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
+
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	data, err := json.Marshal(http.StatusText(http.StatusBadRequest))
+	require.NoError(t, err)
+	assert.JSONEq(t, string(data), w.Body.String())
+}

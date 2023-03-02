@@ -10,8 +10,35 @@ message PingRequest {}
 // PingResponse ...
 message PingResponse {}
 
+// CreateUserRequest ...
+message CreateUserRequest {
+  string email = 1;
+  string password = 2;
+}
+
+// CreateUserResponse ...
+message CreateUserResponse {
+  string id = 1;
+  string email = 2;
+}
+
+message CreateTokenRequest {
+  string email = 1;
+  string password = 2;
+  string token_type = 3;
+}
+
+message CreateTokenResponse {
+  string type = 1;
+  string token = 2;
+}
+
 // Godo ...
 service Godo {
   // Ping ...
   rpc Ping(PingRequest) returns (PingResponse);
+  // CreateUser ...
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+  // CreateToken ...
+  rpc CreateToken(CreateTokenRequest) returns (CreateTokenResponse);
 }

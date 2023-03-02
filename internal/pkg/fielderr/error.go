@@ -2,6 +2,7 @@ package fielderr
 
 import (
 	"go.uber.org/zap"
+	"google.golang.org/grpc/status"
 	"net/http"
 
 	"google.golang.org/grpc/codes"
@@ -61,6 +62,10 @@ func (f *Error) With(fields ...zap.Field) *Error {
 
 func (f *Error) Data() any {
 	return f.data
+}
+
+func (f *Error) Err() error {
+	return status.Error(f.CodeGRPC(), f.msg)
 }
 
 func (f *Error) Code() int {

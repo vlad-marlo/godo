@@ -102,7 +102,7 @@ func (s *Server) CreateToken(w http.ResponseWriter, r *http.Request) {
 		s.respond(w, http.StatusInternalServerError, nil, zap.Error(err), ReqIDField(reqID))
 		return
 	}
-	s.respond(w, http.StatusOK, u)
+	s.respond(w, http.StatusCreated, u)
 }
 
 // Ping godoc.

@@ -24,6 +24,10 @@ const _ = grpc.SupportPackageIsVersion7
 type GodoClient interface {
 	// Ping ...
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
+	// CreateUser ...
+	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserResponse, error)
+	// CreateToken ...
+	CreateToken(ctx context.Context, in *CreateTokenRequest, opts ...grpc.CallOption) (*CreateTokenResponse, error)
 }
 
 type godoClient struct {
@@ -43,12 +47,34 @@ func (c *godoClient) Ping(ctx context.Context, in *PingRequest, opts ...grpc.Cal
 	return out, nil
 }
 
+func (c *godoClient) CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserResponse, error) {
+	out := new(CreateUserResponse)
+	err := c.cc.Invoke(ctx, "/internal.Godo/CreateUser", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *godoClient) CreateToken(ctx context.Context, in *CreateTokenRequest, opts ...grpc.CallOption) (*CreateTokenResponse, error) {
+	out := new(CreateTokenResponse)
+	err := c.cc.Invoke(ctx, "/internal.Godo/CreateToken", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GodoServer is the server API for Godo service.
 // All implementations must embed UnimplementedGodoServer
 // for forward compatibility
 type GodoServer interface {
 	// Ping ...
 	Ping(context.Context, *PingRequest) (*PingResponse, error)
+	// CreateUser ...
+	CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error)
+	// CreateToken ...
+	CreateToken(context.Context, *CreateTokenRequest) (*CreateTokenResponse, error)
 	mustEmbedUnimplementedGodoServer()
 }
 
@@ -58,6 +84,12 @@ type UnimplementedGodoServer struct {
 
 func (UnimplementedGodoServer) Ping(context.Context, *PingRequest) (*PingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
+}
+func (UnimplementedGodoServer) CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateUser not implemented")
+}
+func (UnimplementedGodoServer) CreateToken(context.Context, *CreateTokenRequest) (*CreateTokenResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateToken not implemented")
 }
 func (UnimplementedGodoServer) mustEmbedUnimplementedGodoServer() {}
 
@@ -90,6 +122,42 @@ func _Godo_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Godo_CreateUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GodoServer).CreateUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/internal.Godo/CreateUser",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GodoServer).CreateUser(ctx, req.(*CreateUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Godo_CreateToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateTokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GodoServer).CreateToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/internal.Godo/CreateToken",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GodoServer).CreateToken(ctx, req.(*CreateTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Godo_ServiceDesc is the grpc.ServiceDesc for Godo service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -100,6 +168,14 @@ var Godo_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Ping",
 			Handler:    _Godo_Ping_Handler,
+		},
+		{
+			MethodName: "CreateUser",
+			Handler:    _Godo_CreateUser_Handler,
+		},
+		{
+			MethodName: "CreateToken",
+			Handler:    _Godo_CreateToken_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

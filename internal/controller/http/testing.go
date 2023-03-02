@@ -15,6 +15,11 @@ var (
 		Pass:  "test password",
 		Email: "example@ex.com",
 	}
+	TestTokenRequest = &model.CreateTokenRequest{
+		Email:     TestUser1.Email,
+		Password:  TestUser1.Pass,
+		TokenType: "auth",
+	}
 )
 
 // TestServer is helper function that creates http server
