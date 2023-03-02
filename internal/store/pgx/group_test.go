@@ -47,14 +47,6 @@ func TestGroupRepository_Create_Positive(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestGroupRepository_Create_Negative_Unknown(t *testing.T) {
-	cli := BadCli(t)
-	grp := NewGroupRepository(cli)
-	err := grp.Create(context.Background(), TestGroup1)
-	require.Error(t, err)
-	assert.ErrorIs(t, err, store.ErrUnknown)
-}
-
 func TestGroupRepository_Create_AlreadyExists(t *testing.T) {
 	grp, usr, td := testGroupUser(t)
 	defer td()
@@ -111,13 +103,4 @@ func TestGroupRepository_Get(t *testing.T) {
 	assert.Nil(t, group)
 	assert.ErrorIs(t, err, store.ErrNotFound)
 	assert.Error(t, err)
-}
-
-func TestGroupRepository_Get_Negative_BadClient(t *testing.T) {
-	cli := BadCli(t)
-	grp := NewGroupRepository(cli)
-	group, err := grp.Get(context.Background(), TestGroup1.ID.String())
-	assert.Nil(t, group)
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, store.ErrUnknown)
 }

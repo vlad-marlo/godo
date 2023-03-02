@@ -45,6 +45,7 @@ VALUES ($1,
 				return store.ErrBadData
 			}
 		}
+		repo.log.Warn("unknown error while creating invite link", TraceError(err)...)
 		return Unknown(err)
 	}
 

@@ -3,6 +3,7 @@ package pgx
 import (
 	"context"
 	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/vlad-marlo/godo/internal/store/mocks"
 	"testing"
@@ -12,18 +13,18 @@ func TestMockExists(t *testing.T) {
 	tt := []bool{true, false}
 	for _, exp := range tt {
 		t.Run("exp", func(t *testing.T) {
+			ctx := context.Background()
 			ctrl := gomock.NewController(t)
-			u := mocks.NewMockUserRepository(ctrl)
-			g := mocks.NewMockGroupRepository(ctrl)
-			u.EXPECT().
-				Exists(gomock.Any(), gomock.Any()).
-				Return(exp)
-			g.EXPECT().
-				Exists(gomock.Any(), gomock.Any()).
-				Return(exp)
+			userRepo := mocks.NewMockUserRepository(ctrl)
+			groupRepo := mocks.NewMockGroupRepository(ctrl)
+			invRepo := mocks.NewMockInviteRepository(ctrl)
+			userRepo.EXPECT().Exists(gomock.Any(), gomock.Any()).Return(exp)
+			groupRepo.EXPECT().Exists(gomock.Any(), gomock.Any()).Return(exp)
+			invRepo.EXPECT().Exists(gomock.Any(), gomock.Any(), gomock.Any()).Return(exp)
 
-			assert.Equal(t, exp, u.Exists(context.Background(), ""))
-			assert.Equal(t, exp, g.Exists(context.Background(), ""))
+			assert.Equal(t, exp, userRepo.Exists(ctx, ""))
+			assert.Equal(t, exp, groupRepo.Exists(ctx, ""))
+			assert.Equal(t, exp, invRepo.Exists(ctx, uuid.Nil, uuid.Nil))
 		})
 	}
 

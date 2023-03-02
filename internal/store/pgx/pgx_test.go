@@ -2,6 +2,8 @@ package pgx
 
 import (
 	"context"
+	"github.com/vlad-marlo/godo/internal/model"
+	"github.com/vlad-marlo/godo/internal/store"
 	"log"
 	"os"
 	"testing"
@@ -71,4 +73,42 @@ func TestMain(m *testing.M) {
 		log.Fatalf("os: setenv: %s", err.Error())
 	}
 	os.Exit(m.Run())
+}
+
+func TestBadCli(t *testing.T) {
+	st, _ := testStore(t, BadCli(t))
+	ctx := context.Background()
+
+	assert.False(t, st.user.Exists(ctx, "sd"))
+	group, err := st.group.Get(context.Background(), TestGroup1.ID.String())
+	assert.Nil(t, group)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, store.ErrUnknown)
+
+	err = st.group.Create(context.Background(), TestGroup1)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, store.ErrUnknown)
+
+	err = st.invite.Create(context.Background(), TestInvite1, TestRole1, TestGroup1.ID, 1)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, store.ErrUnknown)
+
+	require.False(t, st.invite.Exists(context.Background(), TestInvite1, TestGroup1.ID))
+
+	var u *model.User
+	u, err = st.user.GetByEmail(context.Background(), "xd")
+	assert.Nil(t, u)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, store.ErrUnknown)
+
+	err = st.user.Create(context.Background(), new(model.User))
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, store.ErrUnknown)
+
+	var token *model.Token
+	token, err = st.token.Get(ctx, TestToken1.Token)
+	assert.Nil(t, token)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, store.ErrUnknown)
+
 }

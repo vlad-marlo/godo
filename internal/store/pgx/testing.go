@@ -34,6 +34,9 @@ var _dbTables = []string{
 }
 
 var (
+
+	// Test USERS //
+
 	TestUser1 = &model.User{
 		ID:    uuid.New(),
 		Pass:  "second_password",
@@ -49,6 +52,9 @@ var (
 		Pass:  "some_password",
 		Email: TestUser1.Email,
 	}
+
+	// Test GROUPS //
+
 	TestGroup1 = &model.Group{
 		ID:          uuid.New(),
 		Name:        "test group",
@@ -63,6 +69,9 @@ var (
 		Description: "another description",
 		CreatedAt:   time.Now(),
 	}
+
+	// Test TOKENS //
+
 	TestToken1 = &model.Token{
 		UserID:    TestUser1.ID,
 		Token:     "some token",
@@ -80,6 +89,26 @@ var (
 		Token:     "another token",
 		ExpiresAt: time.Now().UTC(),
 		Expires:   false,
+	}
+
+	// TEST INVITES //
+
+	TestInvite1 = uuid.New()
+	TestInvite2 = uuid.New()
+
+	// TEST ROLES //
+
+	TestRole1 = &model.Role{
+		Members:  3,
+		Tasks:    4,
+		Reviews:  2,
+		Comments: 1,
+	}
+	TestRole2 = &model.Role{
+		Members:  3,
+		Tasks:    4,
+		Reviews:  2,
+		Comments: 1,
 	}
 )
 
@@ -151,6 +180,7 @@ func teardown(t testing.TB, cli Client) func(...string) {
 	}
 }
 
+// BadCli return client that has pool that not connected to real database.
 func BadCli(t testing.TB) Client {
 	ctrl := gomock.NewController(t)
 	cli := mocks.NewMockClient(ctrl)
@@ -158,6 +188,7 @@ func BadCli(t testing.TB) Client {
 
 	pool, err := pgxpool.New(context.Background(), "postgresql://a:a@a:1/a")
 	require.NoError(t, err)
+	require.Error(t, pool.Ping(context.Background()))
 
 	cli.EXPECT().P().Return(pool).AnyTimes()
 	return cli

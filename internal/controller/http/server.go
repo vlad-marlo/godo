@@ -149,7 +149,7 @@ func (s *Server) configureMW() {
 	s.Use(
 		middleware.RequestID,
 		middleware.Recoverer,
-		//mw.LogRequest(s.log),
+		mw.LogRequest(s.log),
 	)
 }
 

@@ -78,22 +78,3 @@ func TestUserRepository_GetByName(t *testing.T) {
 
 	assert.False(t, s.Exists(ctx, TestUser2.ID.String()))
 }
-
-func TestUserRepository_GetByName_Negative(t *testing.T) {
-	cli := BadCli(t)
-	userRepository := NewUserRepository(cli)
-
-	u, err := userRepository.GetByEmail(context.Background(), "xd")
-	assert.Nil(t, u)
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, store.ErrUnknown)
-}
-
-func TestUserRepository_Create_Negative(t *testing.T) {
-	cli := BadCli(t)
-	userRepository := NewUserRepository(cli)
-
-	err := userRepository.Create(context.Background(), new(model.User))
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, store.ErrUnknown)
-}
