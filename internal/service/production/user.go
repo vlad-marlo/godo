@@ -109,47 +109,57 @@ func (s *Service) jwtKeyFunc(*jwt.Token) (interface{}, error) {
 }
 
 // GetUserFromToken parses jwt token from raw token string.
-func (s *Service) GetUserFromToken(ctx context.Context, t string) (string, error) {
-	if strings.HasPrefix(t, "Bearer ") {
+func (s *Service) GetUserFromToken(ctx context.Context, t string) (uuid.UUID, error) {
+	switch {
+	case strings.HasPrefix(t, "Bearer "):
 		return s.getUserFromJWTToken(ctx, t)
-	}
-	if strings.HasPrefix(t, "Authorization ") {
+	case strings.HasPrefix(t, "Authorization "):
+		return s.getUserFromAuthToken(ctx, t)
+	default:
 		return s.getUserFromAuthToken(ctx, t)
 	}
-	return "", service.ErrBadAuthData
 }
 
 // getUserFromAuthToken ...
-func (s *Service) getUserFromAuthToken(ctx context.Context, t string) (string, error) {
-	t = strings.TrimPrefix(t, "Authorization ")
+func (s *Service) getUserFromAuthToken(ctx context.Context, t string) (uuid.UUID, error) {
+	t = strings.TrimPrefix(strings.TrimPrefix(t, "Authorization "), "authorization ")
 	u, err := s.store.Token().Get(ctx, t)
 	if err != nil {
-		return "", service.ErrTokenNotValid.With(zap.Error(err))
+		if errors.Is(err, store.ErrUnknown) {
+			return uuid.Nil, service.ErrInternal.With(zap.Error(err))
+		}
+		return uuid.Nil, service.ErrTokenNotValid.With(zap.Error(err))
 	}
-	return u.UserID.String(), nil
+	return u.UserID, nil
 }
 
 // getUserFromJWTToken ...
-func (s *Service) getUserFromJWTToken(ctx context.Context, t string) (string, error) {
+func (s *Service) getUserFromJWTToken(ctx context.Context, t string) (uuid.UUID, error) {
 	t = strings.TrimPrefix(t, "Bearer ")
 	token, err := jwt.ParseWithClaims(t, &jwt.RegisteredClaims{}, s.jwtKeyFunc)
 	if err != nil {
-		return "", service.ErrInternal.With(zap.Error(fmt.Errorf("parse jwt: %w", err)))
+		return uuid.Nil, service.ErrTokenNotValid.With(zap.Error(fmt.Errorf("parse jwt: %w", err)))
 	}
 
 	if !token.Valid {
-		return "", service.ErrTokenNotValid
+		return uuid.Nil, service.ErrTokenNotValid
 	}
 
 	claims, ok := token.Claims.(*jwt.RegisteredClaims)
 	if !ok {
-		return "", service.ErrTokenNotValid
+		return uuid.Nil, service.ErrTokenNotValid
 	}
 
-	u := claims.Subject
-	if !s.store.User().Exists(ctx, u) {
-		return "", service.ErrTokenNotValid
+	var u uuid.UUID
+	u, err = uuid.Parse(claims.Subject)
+	if err != nil {
+		return uuid.Nil, service.ErrTokenNotValid.With(zap.Error(err))
 	}
+
+	if !s.store.User().Exists(ctx, u.String()) {
+		return uuid.Nil, service.ErrTokenNotValid
+	}
+
 	return u, nil
 }
 
@@ -195,6 +205,43 @@ func (s *Service) createAuthToken(ctx context.Context, u *model.User) (*model.Cr
 	return &model.CreateTokenResponse{
 		TokenType:   AuthorizationToken,
 		AccessToken: t.Token,
+	}, nil
+}
+
+// CreateInvite ...
+func (s *Service) CreateInvite(ctx context.Context, user uuid.UUID, group uuid.UUID, role *model.Role, limit int) (*model.CreateInviteResponse, error) {
+	userRole, err := s.store.Group().GetRoleOfMember(ctx, user, group)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, service.ErrForbidden
+		}
+		return nil, service.ErrInternal.With(zap.Error(err))
+	}
+
+	if userRole.Members < 2 {
+		return nil, service.ErrForbidden
+	}
+
+	invite := uuid.New()
+
+	if err = s.store.Invite().Create(ctx, invite, role, group, limit); err != nil {
+
+		switch errors.Unwrap(err) {
+
+		case store.ErrUniqueViolation:
+			return nil, service.ErrConflict
+
+		case store.ErrFKViolation:
+			return nil, service.ErrBadData
+
+		default:
+			return nil, service.ErrInternal.With(zap.Error(err))
+		}
+	}
+	return &model.CreateInviteResponse{
+		// invite link template
+		Link:  fmt.Sprintf(s.cfg.Server.InviteLinkTemplate, s.cfg.Server.BaseURL, group, invite),
+		Limit: limit,
 	}, nil
 }
 

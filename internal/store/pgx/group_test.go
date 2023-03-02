@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/vlad-marlo/godo/internal/model"
 	"github.com/vlad-marlo/godo/internal/store"
+	"go.uber.org/zap"
 	"testing"
 	"time"
 )
@@ -29,6 +30,9 @@ func TestGroupRepository_Create_Negative_BadData(t *testing.T) {
 }
 
 func TestGroupRepository_Create_Positive(t *testing.T) {
+	log, _ := zap.NewProduction()
+	replacer := zap.ReplaceGlobals(log)
+	defer replacer()
 	repo, td := testGroup(t)
 	defer td()
 	user, tdUser := testUsers(t)

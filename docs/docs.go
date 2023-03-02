@@ -17,6 +17,270 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/groups/": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Groups"
+                ],
+                "summary": "Создание группы пользователей",
+                "operationId": "group_create",
+                "parameters": [
+                    {
+                        "description": "group data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateGroupRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateGroupResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    },
+                    "401": {
+                        "description": "Not Authorized",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/groups/{group_id}/apply": {
+            "post": {
+                "consumes": [
+                    "text/plain"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Groups"
+                ],
+                "summary": "Использование приглашения в группу.",
+                "operationId": "apply_user_to_group",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "group id",
+                        "name": "group_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "invite id",
+                        "name": "invite",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/groups/{group_id}/invite": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Invites",
+                    "Groups"
+                ],
+                "summary": "создание приглашения в группу.",
+                "operationId": "invite_user_groups",
+                "parameters": [
+                    {
+                        "description": "invite data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateInviteViaGroupRequest"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "group id",
+                        "name": "group_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateInviteResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/invites": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Invites",
+                    "Groups"
+                ],
+                "summary": "создание приглашения в группу.",
+                "operationId": "invite_user",
+                "parameters": [
+                    {
+                        "description": "invite data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateInviteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateInviteResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/ping": {
             "get": {
                 "consumes": [
@@ -26,7 +290,7 @@ const docTemplate = `{
                     "text/plain"
                 ],
                 "tags": [
-                    "Ping"
+                    "Server"
                 ],
                 "summary": "Запрос состояния сервиса",
                 "operationId": "ping",
@@ -55,7 +319,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "UserCreate"
+                    "User"
                 ],
                 "summary": "Создание пользователя",
                 "operationId": "user_create",
@@ -107,7 +371,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "CreateToken"
+                    "Tokens"
                 ],
                 "summary": "Создание JWT токена для пользователя.",
                 "operationId": "login_jwt",
@@ -138,13 +402,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/model.Error"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/model.Error"
                         }
                     }
                 }
@@ -162,6 +426,94 @@ const docTemplate = `{
                 "name": {
                     "description": "Name must be unique string. Name will be used",
                     "type": "string"
+                }
+            }
+        },
+        "model.CreateGroupResponse": {
+            "type": "object",
+            "properties": {
+                "created-at": {
+                    "description": "CreatedAt is creation time in UNIX format",
+                    "type": "integer"
+                },
+                "description": {
+                    "description": "Description is short info about group.",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "ID is primary key of group.",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "Name is unique name of group.",
+                    "type": "string"
+                }
+            }
+        },
+        "model.CreateInviteRequest": {
+            "type": "object",
+            "properties": {
+                "comments-permission": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "group": {
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
+                },
+                "limit": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "members-permission": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "reviews-permission": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "tasks-permission": {
+                    "type": "integer",
+                    "example": 4
+                }
+            }
+        },
+        "model.CreateInviteResponse": {
+            "type": "object",
+            "properties": {
+                "invite-link": {
+                    "type": "string",
+                    "example": "http://localhost:8080/api/v1/groups/00000000-0000-0000-0000-000000000000/apply?invite=00000000-0000-0000-0000-000000000000"
+                },
+                "limit": {
+                    "type": "integer",
+                    "example": 2
+                }
+            }
+        },
+        "model.CreateInviteViaGroupRequest": {
+            "type": "object",
+            "properties": {
+                "comments-permission": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "limit": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "members-permission": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "reviews-permission": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "tasks-permission": {
+                    "type": "integer",
+                    "example": 4
                 }
             }
         },
@@ -251,7 +603,7 @@ var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "localhost:8080",
 	BasePath:         "/api/v1",
-	Schemes:          []string{},
+	Schemes:          []string{"http", "https"},
 	Title:            "GODO API",
 	Description:      "This is a godo server.",
 	InfoInstanceName: "swagger",

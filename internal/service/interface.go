@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"github.com/vlad-marlo/godo/internal/model"
 )
 
@@ -14,7 +15,11 @@ type Interface interface {
 	RegisterUser(ctx context.Context, email, password string) (*model.User, error)
 	// GetUserFromToken is helper function that decodes jwt token from t and check existing of user which id is provided
 	// in token claims.
-	GetUserFromToken(ctx context.Context, t string) (string, error)
+	GetUserFromToken(ctx context.Context, t string) (uuid.UUID, error)
 	// CreateGroup create new group.
-	CreateGroup(ctx context.Context, user, name, description string) (*model.CreateGroupResponse, error)
+	CreateGroup(ctx context.Context, user uuid.UUID, name, description string) (*model.CreateGroupResponse, error)
+	// CreateInvite creates invite link on which user will insert into group.
+	CreateInvite(ctx context.Context, user uuid.UUID, group uuid.UUID, role *model.Role, limit int) (*model.CreateInviteResponse, error)
+	// UseInvite applies use to group if invite data is ok.
+	UseInvite(ctx context.Context, user uuid.UUID, group uuid.UUID, invite uuid.UUID) error
 }

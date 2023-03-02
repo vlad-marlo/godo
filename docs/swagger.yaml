@@ -11,6 +11,69 @@ definitions:
         description: Name must be unique string. Name will be used
         type: string
     type: object
+  model.CreateGroupResponse:
+    properties:
+      created-at:
+        description: CreatedAt is creation time in UNIX format
+        type: integer
+      description:
+        description: Description is short info about group.
+        type: string
+      id:
+        description: ID is primary key of group.
+        type: string
+      name:
+        description: Name is unique name of group.
+        type: string
+    type: object
+  model.CreateInviteRequest:
+    properties:
+      comments-permission:
+        example: 4
+        type: integer
+      group:
+        example: 00000000-0000-0000-0000-000000000000
+        type: string
+      limit:
+        example: 2
+        type: integer
+      members-permission:
+        example: 4
+        type: integer
+      reviews-permission:
+        example: 4
+        type: integer
+      tasks-permission:
+        example: 4
+        type: integer
+    type: object
+  model.CreateInviteResponse:
+    properties:
+      invite-link:
+        example: http://localhost:8080/api/v1/groups/00000000-0000-0000-0000-000000000000/apply?invite=00000000-0000-0000-0000-000000000000
+        type: string
+      limit:
+        example: 2
+        type: integer
+    type: object
+  model.CreateInviteViaGroupRequest:
+    properties:
+      comments-permission:
+        example: 4
+        type: integer
+      limit:
+        example: 2
+        type: integer
+      members-permission:
+        example: 4
+        type: integer
+      reviews-permission:
+        example: 4
+        type: integer
+      tasks-permission:
+        example: 4
+        type: integer
+    type: object
   model.CreateTokenRequest:
     properties:
       email:
@@ -71,6 +134,181 @@ info:
   title: GODO API
   version: "1.0"
 paths:
+  /groups/:
+    post:
+      consumes:
+      - application/json
+      operationId: group_create
+      parameters:
+      - description: group data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateGroupRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.CreateGroupResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Error'
+        "401":
+          description: Not Authorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.Error'
+      summary: Создание группы пользователей
+      tags:
+      - Groups
+  /groups/{group_id}/apply:
+    post:
+      consumes:
+      - text/plain
+      operationId: apply_user_to_group
+      parameters:
+      - description: group id
+        in: path
+        name: group_id
+        required: true
+        type: string
+      - description: invite id
+        in: query
+        name: invite
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/model.Error'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.Error'
+      summary: Использование приглашения в группу.
+      tags:
+      - Groups
+  /groups/{group_id}/invite:
+    post:
+      consumes:
+      - application/json
+      operationId: invite_user_groups
+      parameters:
+      - description: invite data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateInviteViaGroupRequest'
+      - description: group id
+        in: path
+        name: group_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.CreateInviteResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/model.Error'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.Error'
+      summary: создание приглашения в группу.
+      tags:
+      - Invites
+      - Groups
+  /invites:
+    post:
+      consumes:
+      - application/json
+      operationId: invite_user
+      parameters:
+      - description: invite data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateInviteRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.CreateInviteResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/model.Error'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.Error'
+      summary: создание приглашения в группу.
+      tags:
+      - Invites
+      - Groups
   /ping:
     get:
       consumes:
@@ -89,7 +327,7 @@ paths:
             type: string
       summary: Запрос состояния сервиса
       tags:
-      - Ping
+      - Server
   /users/register:
     post:
       consumes:
@@ -123,7 +361,7 @@ paths:
             $ref: '#/definitions/model.Error'
       summary: Создание пользователя
       tags:
-      - UserCreate
+      - User
   /users/token:
     post:
       consumes:
@@ -150,14 +388,17 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/model.Error'
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/model.Error'
       summary: Создание JWT токена для пользователя.
       tags:
-      - CreateToken
+      - Tokens
+schemes:
+- http
+- https
 securityDefinitions:
   BasicAuth on:
     type: basic

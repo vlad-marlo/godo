@@ -59,10 +59,33 @@ var (
 		},
 		fielderr.CodeUnauthorized,
 	)
+	ErrForbidden = fielderr.New(
+		"user has no permission",
+		map[string]string{
+			"error": "you have no permission to do",
+		},
+		fielderr.CodeForbidden)
 	ErrGroupAlreadyExists = fielderr.New(
 		"group already exists",
 		map[string]string{
 			"name": "group with provided name already exists",
+		},
+		fielderr.CodeConflict,
+	)
+	ErrConflict           = fielderr.New("conflict", nil, fielderr.CodeConflict)
+	ErrBadData            = fielderr.New("bad data", nil, fielderr.CodeBadRequest)
+	ErrBadAuthCredentials = fielderr.New("bad auth credentials", nil, fielderr.CodeUnauthorized)
+	ErrBadInvite          = fielderr.New(
+		"invite does not exists",
+		map[string]string{
+			"invite": "is not available",
+		},
+		fielderr.CodeNotFound,
+	)
+	ErrAlreadyInGroup = fielderr.New(
+		"user already in group",
+		map[string]string{
+			"invite": "you are already in group",
 		},
 		fielderr.CodeConflict,
 	)

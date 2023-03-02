@@ -14,6 +14,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"strings"
 	"sync"
 	"time"
 )
@@ -41,15 +42,17 @@ type (
 	}
 	// Server is internal configuration of server.
 	Server struct {
-		Type       string `env:"SERVER_TYPE" toml:"type" valid:"in(grpc|http|https|GRPC|HTTP|HTTPS)" envDefault:"HTTP"`
-		EnableHTTP bool   `toml:"-"`
-		EnableGRPC bool   `toml:"-"`
-		Salt       string `env:"ENCRYPT_SALT" valid:"required~use generated salt from the logs" toml:"salt"`
-		SecretKey  string `env:"SECRET_KEY" valid:"required" toml:"secret_key"`
-		IsDev      bool   `env:"IS_DEV" toml:"is_dev"`
-		IsProd     bool   `env:"IS_PRODUCTION" toml:"is_prod"`
-		Port       uint   `env:"BIND_PORT" toml:"port"`
-		Addr       string `env:"BIND_ADDR" toml:"addr"`
+		Type               string `env:"SERVER_TYPE" toml:"type" valid:"in(grpc|http|https|GRPC|HTTP|HTTPS)" envDefault:"HTTP"`
+		EnableHTTP         bool   `toml:"-"`
+		EnableGRPC         bool   `toml:"-"`
+		Salt               string `env:"ENCRYPT_SALT" valid:"required~use generated salt from the logs" toml:"salt"`
+		SecretKey          string `env:"SECRET_KEY" valid:"required" toml:"secret_key"`
+		IsDev              bool   `env:"IS_DEV" toml:"is_dev"`
+		IsProd             bool   `env:"IS_PRODUCTION" toml:"is_prod"`
+		Port               uint   `env:"BIND_PORT" toml:"port"`
+		Addr               string `env:"BIND_ADDR" toml:"addr"`
+		BaseURL            string `env:"BASE_URL" toml:"base_url"`
+		InviteLinkTemplate string `env:"INVITE_LINK_TEMPLATE"`
 	}
 	// Test is a configuration that is using in tests
 	Test struct {
@@ -89,9 +92,9 @@ const (
 	defaultAddr        = "localhost"
 	defaultPort        = 8080
 	defaultPassDif     = 40
-	defaultConfigPath  = "configs/config.toml"
 	defaultType        = "http"
 	defaultTokenSize   = 20
+	defaultInviteTmp   = "%s/api/v1/groups/%s/apply?invite=%s"
 )
 
 func New() *Config {
@@ -108,7 +111,9 @@ func initConfig() {
 	var configPath string
 	// flag vars
 	{
-		flag.StringVar(&configPath, "config-path", defaultConfigPath, "specify config path")
+		flag.StringVar(&c.Server.Type, "t", c.Server.Type, "specify server type - HTTP/GRPC")
+		flag.StringVar(&c.Server.Type, "type", c.Server.Type, "specify server type - HTTP/GRPC")
+		flag.StringVar(&configPath, "config-path", configPath, "specify config path")
 		flag.StringVar(&configPath, "c", configPath, "specify config path")
 		flag.StringVar(&c.Postgres.URI, "d", c.Postgres.URI, "db uri like postgresql://(username):(password)@(addr):(port)/(db_name)?(params)")
 		flag.StringVar(&c.Postgres.URI, "db-uri", c.Postgres.URI, "db uri like postgresql://(username):(password)@(addr):(port)/(db_name)?(params)")
@@ -116,6 +121,8 @@ func initConfig() {
 		flag.StringVar(&c.Server.Addr, "bind-addr", c.Server.Addr, "bind address without port for example 127.0.0.1")
 		flag.UintVar(&c.Server.Port, "p", c.Server.Port, "bind port as uint from 0 to 65536")
 		flag.UintVar(&c.Server.Port, "bind-port", c.Server.Port, "bind port as uint from 0 to 65536")
+		flag.StringVar(&c.Server.BaseURL, "b", c.Server.BaseURL, "base url used to generate url")
+		flag.StringVar(&c.Server.BaseURL, "base-url", c.Server.BaseURL, "base url used to generate url")
 
 		flag.BoolVar(&c.Server.IsDev, "is-dev", c.Server.IsDev, "if true server will be running with development mode")
 		flag.BoolVar(&c.Server.IsProd, "is-prod", c.Server.IsProd, "if true server will be running with production mode")
@@ -124,7 +131,7 @@ func initConfig() {
 
 	flag.Parse()
 
-	(&c.Postgres).SetDatabaseURI()
+	c.Postgres.SetDatabaseURI()
 	switch c.Server.Type {
 	case "HTTP", "HTTPS", "https", "http":
 		c.Server.EnableHTTP = true
@@ -161,14 +168,14 @@ func (p *Postgres) SetDatabaseURI() {
 }
 
 // Valid ...
-func (c *Config) Valid() (bool, error) {
+func (c *Config) Valid() (ok bool, err error) {
 	if c == nil {
 		return false, nil
 	}
-	ok, err := govalidator.ValidateStruct(c)
+	ok, err = govalidator.ValidateStruct(c)
 	// validate that enabled
-	ok = ok && (c.Server.EnableGRPC != c.Server.EnableHTTP) && (c.Server.EnableHTTP || c.Server.EnableGRPC)
-	return ok, err
+	ok = ok && (c.Server.EnableGRPC != c.Server.EnableHTTP) && (c.Server.EnableHTTP || c.Server.EnableGRPC) && strings.Count("%s", c.Server.InviteLinkTemplate) != 3
+	return
 }
 
 // setDefaultVars add default values or generate it for config.
@@ -215,6 +222,12 @@ func (c *Config) setDefaultVars() {
 	}
 	if c.Auth.AuthTokenSize == 0 {
 		c.Auth.AuthTokenSize = defaultTokenSize
+	}
+	if c.Server.InviteLinkTemplate == "" {
+		c.Server.InviteLinkTemplate = defaultInviteTmp
+	}
+	if c.Server.BaseURL == "" {
+		c.Server.BaseURL = fmt.Sprintf("http://%s:%d", c.Server.Addr, c.Server.Port)
 	}
 }
 

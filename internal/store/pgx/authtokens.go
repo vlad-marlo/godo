@@ -14,6 +14,8 @@ import (
 	"time"
 )
 
+var _ store.TokenRepository = (*TokenRepository)(nil)
+
 type TokenRepository struct {
 	pool *pgxpool.Pool
 	log  *zap.Logger

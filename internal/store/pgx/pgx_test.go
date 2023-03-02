@@ -30,17 +30,33 @@ func TestNew(t *testing.T) {
 
 func TestStore_User(t *testing.T) {
 	cli := postgres.TestClient(t)
-	u := NewUserRepository(cli)
-	g := NewGroupRepository(cli)
-	tr := NewTokenRepository(cli)
-	taskRepo := NewTaskRepository(cli)
-	s := New(cli, u, g, tr, taskRepo)
-	assert.Equal(t, u, s.User())
+	usrRepo := NewUserRepository(cli)
+	grpRepo := NewGroupRepository(cli)
+	tokRepo := NewTokenRepository(cli)
+	tskRepo := NewTaskRepository(cli)
+	invRepo := NewInviteRepository(cli)
+	s := New(
+		cli,
+		usrRepo,
+		grpRepo,
+		tokRepo,
+		tskRepo,
+		invRepo,
+	)
+	assert.Equal(t, usrRepo, s.User())
 	assert.Equal(t, s.user, s.User())
-	assert.Equal(t, g, s.Group())
-	assert.Equal(t, g, s.group)
-	assert.Equal(t, tr, s.token)
+
+	assert.Equal(t, grpRepo, s.Group())
+	assert.Equal(t, grpRepo, s.group)
+
+	assert.Equal(t, tokRepo, s.token)
 	assert.Equal(t, s.token, s.Token())
+
+	assert.Equal(t, tskRepo, s.Task())
+	assert.Equal(t, s.task, s.Task())
+
+	assert.Equal(t, s.invite, s.Invite())
+	assert.Equal(t, s.invite, invRepo)
 	s.Close()
 }
 

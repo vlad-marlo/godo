@@ -9,6 +9,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	uuid "github.com/google/uuid"
 	model "github.com/vlad-marlo/godo/internal/model"
 )
 
@@ -36,7 +37,7 @@ func (m *MockService) EXPECT() *MockServiceMockRecorder {
 }
 
 // CreateGroup mocks base method.
-func (m *MockService) CreateGroup(ctx context.Context, user, name, description string) (*model.CreateGroupResponse, error) {
+func (m *MockService) CreateGroup(ctx context.Context, user uuid.UUID, name, description string) (*model.CreateGroupResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateGroup", ctx, user, name, description)
 	ret0, _ := ret[0].(*model.CreateGroupResponse)
@@ -50,26 +51,41 @@ func (mr *MockServiceMockRecorder) CreateGroup(ctx, user, name, description inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateGroup", reflect.TypeOf((*MockService)(nil).CreateGroup), ctx, user, name, description)
 }
 
-// CreateToken mocks base method.
-func (m *MockService) CreateToken(ctx context.Context, username, password, token string) (*model.CreateTokenResponse, error) {
+// CreateInvite mocks base method.
+func (m *MockService) CreateInvite(ctx context.Context, user, group uuid.UUID, role *model.Role, limit int) (*model.CreateInviteResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateToken", ctx, username, password, token)
+	ret := m.ctrl.Call(m, "CreateInvite", ctx, user, group, role, limit)
+	ret0, _ := ret[0].(*model.CreateInviteResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateInvite indicates an expected call of CreateInvite.
+func (mr *MockServiceMockRecorder) CreateInvite(ctx, user, group, role, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInvite", reflect.TypeOf((*MockService)(nil).CreateInvite), ctx, user, group, role, limit)
+}
+
+// CreateToken mocks base method.
+func (m *MockService) CreateToken(ctx context.Context, email, password, token string) (*model.CreateTokenResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateToken", ctx, email, password, token)
 	ret0, _ := ret[0].(*model.CreateTokenResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateToken indicates an expected call of CreateToken.
-func (mr *MockServiceMockRecorder) CreateToken(ctx, username, password, token interface{}) *gomock.Call {
+func (mr *MockServiceMockRecorder) CreateToken(ctx, email, password, token interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateToken", reflect.TypeOf((*MockService)(nil).CreateToken), ctx, username, password, token)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateToken", reflect.TypeOf((*MockService)(nil).CreateToken), ctx, email, password, token)
 }
 
 // GetUserFromToken mocks base method.
-func (m *MockService) GetUserFromToken(ctx context.Context, t string) (string, error) {
+func (m *MockService) GetUserFromToken(ctx context.Context, t string) (uuid.UUID, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserFromToken", ctx, t)
-	ret0, _ := ret[0].(string)
+	ret0, _ := ret[0].(uuid.UUID)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -107,4 +123,18 @@ func (m *MockService) RegisterUser(ctx context.Context, email, password string) 
 func (mr *MockServiceMockRecorder) RegisterUser(ctx, email, password interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterUser", reflect.TypeOf((*MockService)(nil).RegisterUser), ctx, email, password)
+}
+
+// UseInvite mocks base method.
+func (m *MockService) UseInvite(ctx context.Context, user, group, invite uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UseInvite", ctx, user, group, invite)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UseInvite indicates an expected call of UseInvite.
+func (mr *MockServiceMockRecorder) UseInvite(ctx, user, group, invite interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UseInvite", reflect.TypeOf((*MockService)(nil).UseInvite), ctx, user, group, invite)
 }

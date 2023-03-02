@@ -35,8 +35,4 @@ type (
 		// CreatedAt is creation time in UNIX format
 		CreatedAt int64 `json:"created-at"`
 	}
-	InviteUserInGroupResponse struct {
-		Link  string
-		Limit int
-	}
 )

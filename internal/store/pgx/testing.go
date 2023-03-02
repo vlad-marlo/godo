@@ -89,11 +89,14 @@ func testStore(t testing.TB, cli Client) (*Store, func()) {
 	if cli == nil {
 		cli = postgres.TestClient(t)
 	}
-	userRepo := NewUserRepository(cli)
-	groupRepo := NewGroupRepository(cli)
-	tokenRepo := NewTokenRepository(cli)
-	taskRepo := NewTaskRepository(cli)
-	s := New(cli, userRepo, groupRepo, tokenRepo, taskRepo)
+	s := New(
+		cli,
+		NewUserRepository(cli),
+		NewGroupRepository(cli),
+		NewTokenRepository(cli),
+		NewTaskRepository(cli),
+		NewInviteRepository(cli),
+	)
 	return s, func() { teardown(t, cli)(_dbTables...) }
 }
 

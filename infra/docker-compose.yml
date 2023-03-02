@@ -1,10 +1,10 @@
 volumes:
   data:
-  docs:
 
 services:
   db:
     image: postgres:15-alpine
+    restart: always
     env_file:
       - ./.env
     ports:
@@ -12,24 +12,11 @@ services:
     volumes:
       - data:/var/lib/postgresql
   backend:
-    build: ..
+    image: marlooooo/godo_backend:http-latest
     restart: always
     ports:
       - 8080:8080
-    volumes:
-      - docs:/app/docs/
     depends_on:
       - db
     env_file:
       - ./.env
-  nginx:
-    image: nginx:1.21.3-alpine
-    ports:
-      - 80:80
-
-    volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-      - docs:/var/html/docs/
-
-    depends_on:
-      - backend

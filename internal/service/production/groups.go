@@ -11,22 +11,18 @@ import (
 )
 
 // CreateGroup creates group in storage and prepares response to user.
-func (s *Service) CreateGroup(ctx context.Context, user, name, description string) (*model.CreateGroupResponse, error) {
-	userID, err := uuid.Parse(user)
-	if err != nil {
-		return nil, service.ErrInternal.With(
-			zap.String("user", user),
-			zap.Error(err),
-		)
+func (s *Service) CreateGroup(ctx context.Context, user uuid.UUID, name, description string) (*model.CreateGroupResponse, error) {
+	if user == uuid.Nil {
+		return nil, service.ErrBadAuthCredentials
 	}
 	grp := &model.Group{
 		ID:          uuid.New(),
 		Name:        name,
-		Owner:       userID,
+		Owner:       user,
 		Description: description,
 	}
 
-	if err = s.store.Group().Create(ctx, grp); err != nil {
+	if err := s.store.Group().Create(ctx, grp); err != nil {
 		if errors.Is(err, store.ErrGroupAlreadyExists) {
 			return nil, service.ErrGroupAlreadyExists
 		}
@@ -42,7 +38,28 @@ func (s *Service) CreateGroup(ctx context.Context, user, name, description strin
 	}, nil
 }
 
-func (s *Service) AddUserToGroup() (*model.InviteUserInGroupResponse, error) {
-	//TODO: implement me.
-	panic("not implemented")
+// UseInvite check
+func (s *Service) UseInvite(ctx context.Context, user uuid.UUID, group uuid.UUID, invite uuid.UUID) error {
+	if !s.store.Invite().Exists(ctx, invite, group) {
+		return service.ErrBadInvite
+	}
+
+	if err := s.store.Invite().Use(ctx, invite, user); err != nil {
+		switch {
+
+		case errors.Is(err, store.ErrInviteIsAlreadyUsed):
+			return service.ErrAlreadyInGroup.With(zap.Error(err))
+
+		case errors.Is(err, store.ErrBadData):
+			return service.ErrBadInvite.With(zap.Error(err))
+
+		case errors.Is(err, store.ErrUnknown):
+			return service.ErrInternal.With(zap.Error(err))
+
+		default:
+			return service.ErrInternal.With(zap.Error(err), zap.Stack("stack-trace"))
+		}
+	}
+
+	return nil
 }

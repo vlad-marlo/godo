@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	httpSwagger "github.com/swaggo/http-swagger"
 	"go.uber.org/zap/zapcore"
 	"net"
@@ -30,17 +31,21 @@ type Service interface {
 	// Ping checks access to server.
 	Ping(ctx context.Context) error
 	// CreateToken create new jwt token for refresh and access to server if auth credits are correct.
-	CreateToken(ctx context.Context, username, password, token string) (*model.CreateTokenResponse, error)
+	CreateToken(ctx context.Context, email, password, token string) (*model.CreateTokenResponse, error)
 	// RegisterUser create record about user in storage and prepares response to user.
 	RegisterUser(ctx context.Context, email, password string) (*model.User, error)
 	// GetUserFromToken is helper function that decodes jwt token from t and check existing of user which id is provided
 	// in token claims.
-	GetUserFromToken(ctx context.Context, t string) (string, error)
+	GetUserFromToken(ctx context.Context, t string) (uuid.UUID, error)
 	// CreateGroup create new group.
-	CreateGroup(ctx context.Context, user, name, description string) (*model.CreateGroupResponse, error)
+	CreateGroup(ctx context.Context, user uuid.UUID, name, description string) (*model.CreateGroupResponse, error)
+	// CreateInvite creates invite link.
+	CreateInvite(ctx context.Context, user, group uuid.UUID, role *model.Role, limit int) (*model.CreateInviteResponse, error)
+	// UseInvite add user to group if invite is ok.
+	UseInvite(ctx context.Context, user, group, invite uuid.UUID) error
 }
 
-// Server is idk just do it.
+// Server ...
 type Server struct {
 	*chi.Mux
 	cfg     *config.Config
@@ -144,21 +149,14 @@ func (s *Server) configureMW() {
 	s.Use(
 		middleware.RequestID,
 		middleware.Recoverer,
-		mw.LogRequest(s.log),
+		//mw.LogRequest(s.log),
 	)
 }
 
 // configureRoutes ...
 func (s *Server) configureRoutes() {
-	var prefix string
-	if s.cfg.HTTPS.KeyFile == "" || s.cfg.HTTPS.CertFile == "" || len(s.cfg.HTTPS.AllowedHosts) == 0 {
-		prefix = "http"
-	} else {
-		prefix = "https"
-	}
-
 	s.Get("/swagger/*", httpSwagger.Handler(
-		httpSwagger.URL(fmt.Sprintf("%s://%s:%d/docs/doc.json", prefix, s.cfg.Server.Addr, s.cfg.Server.Port)),
+		httpSwagger.URL(fmt.Sprintf("%s/swagger/doc.json", s.cfg.Server.BaseURL)),
 	))
 	s.Route("/api/v1", func(r chi.Router) {
 		r.HandleFunc("/ping", s.Ping)
@@ -166,7 +164,16 @@ func (s *Server) configureRoutes() {
 			r.Post("/register", s.RegisterUser)
 			r.Post("/token", s.CreateToken)
 		})
-		r.With(mw.AuthChecker(s.srv))
+		r.With(mw.AuthChecker(s.srv)).Group(func(r chi.Router) {
+			r.Route("/groups", func(r chi.Router) {
+				r.Post("/", s.CreateGroup)
+				r.Post("/{group_id}/invite", s.CreateInviteViaGroup)
+				r.Get("/{group_id}/apply", s.UseInvite)
+			})
+			r.Route("/invites", func(r chi.Router) {
+				r.Post("/", s.CreateInviteLink)
+			})
+		})
 	})
 }
 
@@ -196,4 +203,9 @@ func (s *Server) respond(w http.ResponseWriter, code int, data interface{}, fiel
 	if len(fields) > 0 {
 		s.log.Log(lvl, "respond", fields...)
 	}
+}
+
+// internal ...
+func (s *Server) internal(w http.ResponseWriter, fields ...zap.Field) {
+	s.respond(w, http.StatusInternalServerError, nil, fields...)
 }

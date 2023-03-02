@@ -24,6 +24,7 @@ import (
 //	@contact.name	API Support
 
 //	@host		localhost:8080
+//	@schemes	http https
 //	@BasePath	/api/v1
 
 //	@securityDefinitions.basic	BasicAuth on
@@ -57,9 +58,10 @@ func CreateApp() fx.Option {
 			pgx.NewUserRepository,
 			pgx.NewTokenRepository,
 			pgx.NewTaskRepository,
+			pgx.NewInviteRepository,
 			httpctrl.New,
 		),
-		fx.WithLogger(ZapEventLogger),
+		//fx.WithLogger(ZapEventLogger),
 		fx.Invoke(
 			CreateLogger,
 			ValidateConfig,
