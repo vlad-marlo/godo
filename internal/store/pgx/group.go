@@ -22,7 +22,7 @@ type GroupRepository struct {
 	log  *zap.Logger
 }
 
-// NewGroupRepository return new instance of GroupRepository
+// NewGroupRepository return new instance of GroupRepository.
 func NewGroupRepository(cli Client) *GroupRepository {
 	return &GroupRepository{
 		pool: cli.P(),
@@ -30,7 +30,7 @@ func NewGroupRepository(cli Client) *GroupRepository {
 	}
 }
 
-// Exists ...
+// Exists return exist group with id or not.
 func (repo *GroupRepository) Exists(ctx context.Context, id string) (ok bool) {
 	_ = repo.pool.QueryRow(
 		ctx,
@@ -114,37 +114,6 @@ VALUES ($1, $2, (SELECT r.id FROM roles r WHERE r.members = 0 AND r.comments = 0
 	return nil
 }
 
-// Get return group with provided id.
-// Errors:
-// store.Unknown - unknown error.
-// store.ErrNotFound - where is no groups with provided id.
-func (repo *GroupRepository) Get(ctx context.Context, id string) (*model.Group, error) {
-	g := new(model.Group)
-
-	if err := repo.pool.QueryRow(
-		ctx,
-		`SELECT id, "name", description, created_at, "owner" FROM groups WHERE id = $1`,
-		id,
-	).Scan(
-		&g.ID,
-		&g.Name,
-		&g.Description,
-		&g.CreatedAt,
-		&g.Owner,
-	); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, store.ErrNotFound
-		}
-
-		repo.log.Debug(
-			"unknown error while getting group",
-			TraceError(err)...,
-		)
-		return nil, fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
-	}
-	return g, nil
-}
-
 // UserExists ...
 func (repo *GroupRepository) UserExists(ctx context.Context, group, user string) (ok bool) {
 	if err := repo.pool.QueryRow(
@@ -158,12 +127,12 @@ func (repo *GroupRepository) UserExists(ctx context.Context, group, user string)
 	return
 }
 
-// AddTask creates
+// AddTask creates relation object between task and group.
 func (repo *GroupRepository) AddTask(ctx context.Context, task, group string) error {
 	if _, err := repo.pool.Exec(ctx, `INSERT INTO task_group(task_id, group_id) VALUES ($1, $2)`, task, group); err != nil {
 		pgErr, ok := err.(*pgconn.PgError)
 		if !ok {
-			return fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
+			return Unknown(err)
 		}
 
 		switch pgErr.Code {
@@ -176,7 +145,7 @@ func (repo *GroupRepository) AddTask(ctx context.Context, task, group string) er
 		}
 
 		repo.log.Error("add task to group", TraceError(err)...)
-		return fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
+		return Unknown(err)
 	}
 
 	return nil
@@ -203,6 +172,45 @@ WHERE uig.user_id = $1
 			return nil, store.ErrNotFound
 		}
 		repo.log.Error("get role of user", TraceError(err)...)
+		return nil, Unknown(err)
+	}
+	return
+}
+
+// GetByUser ...
+func (repo *GroupRepository) GetByUser(ctx context.Context, user uuid.UUID) (groups []*model.Group, err error) {
+	q := `SELECT g.id, g.name, g.description, g.owner, g.created_at
+FROM groups g
+         JOIN user_in_group uig on g.id = uig.group_id
+WHERE uig.user_id = $1;`
+	var rows pgx.Rows
+
+	rows, err = repo.pool.Query(
+		ctx,
+		q,
+		user,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		repo.log.Warn("doing query; get groups by user", TraceError(err)...)
+		return nil, Unknown(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		g := new(model.Group)
+
+		if err = rows.Scan(&g.ID, &g.Name, &g.Description, &g.Owner, &g.CreatedAt); err != nil {
+			repo.log.Warn("unknown error while scanning group while getting all groups by user", TraceError(err)...)
+			return nil, Unknown(err)
+		}
+
+		groups = append(groups, g)
+	}
+
+	if err = rows.Err(); err != nil {
 		return nil, Unknown(err)
 	}
 	return

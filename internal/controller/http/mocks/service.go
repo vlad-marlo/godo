@@ -81,6 +81,21 @@ func (mr *MockServiceMockRecorder) CreateToken(ctx, email, password, token inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateToken", reflect.TypeOf((*MockService)(nil).CreateToken), ctx, email, password, token)
 }
 
+// GetMe mocks base method.
+func (m *MockService) GetMe(ctx context.Context, user uuid.UUID) (*model.GetMeResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMe", ctx, user)
+	ret0, _ := ret[0].(*model.GetMeResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMe indicates an expected call of GetMe.
+func (mr *MockServiceMockRecorder) GetMe(ctx, user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMe", reflect.TypeOf((*MockService)(nil).GetMe), ctx, user)
+}
+
 // GetUserFromToken mocks base method.
 func (m *MockService) GetUserFromToken(ctx context.Context, t string) (uuid.UUID, error) {
 	m.ctrl.T.Helper()

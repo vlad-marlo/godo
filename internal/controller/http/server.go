@@ -43,6 +43,9 @@ type Service interface {
 	CreateInvite(ctx context.Context, user, group uuid.UUID, role *model.Role, limit int) (*model.CreateInviteResponse, error)
 	// UseInvite add user to group if invite is ok.
 	UseInvite(ctx context.Context, user, group, invite uuid.UUID) error
+
+	// GetMe ...
+	GetMe(ctx context.Context, user uuid.UUID) (*model.GetMeResponse, error)
 }
 
 // Server ...
@@ -155,6 +158,8 @@ func (s *Server) configureMW() {
 
 // configureRoutes ...
 func (s *Server) configureRoutes() {
+	authChecker := mw.AuthChecker(s.srv)
+
 	s.Get("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL(fmt.Sprintf("%s/swagger/doc.json", s.cfg.Server.BaseURL)),
 	))
@@ -163,8 +168,9 @@ func (s *Server) configureRoutes() {
 		r.Route("/users", func(r chi.Router) {
 			r.Post("/register", s.RegisterUser)
 			r.Post("/token", s.CreateToken)
+			r.With(authChecker).Get("/me", s.UserMe)
 		})
-		r.With(mw.AuthChecker(s.srv)).Group(func(r chi.Router) {
+		r.With(authChecker).Group(func(r chi.Router) {
 			r.Route("/groups", func(r chi.Router) {
 				r.Post("/", s.CreateGroup)
 				r.Post("/{group_id}/invite", s.CreateInviteViaGroup)

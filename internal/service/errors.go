@@ -75,6 +75,7 @@ var (
 	ErrConflict           = fielderr.New("conflict", nil, fielderr.CodeConflict)
 	ErrBadData            = fielderr.New("bad data", nil, fielderr.CodeBadRequest)
 	ErrBadAuthCredentials = fielderr.New("bad auth credentials", nil, fielderr.CodeUnauthorized)
+	ErrNotFound           = fielderr.New("not found", nil, fielderr.CodeNotFound)
 	ErrBadInvite          = fielderr.New(
 		"invite does not exists",
 		map[string]string{
@@ -89,4 +90,10 @@ var (
 		},
 		fielderr.CodeConflict,
 	)
+	ErrUserNotFound = fielderr.New("user not found", map[string]string{
+		"user": "not found",
+	}, fielderr.CodeNotFound)
+	ErrBadInviteLimit = fielderr.New("bad limit", map[string]string{
+		"limit": "limit must be not null positive integer number",
+	}, fielderr.CodeBadRequest)
 )

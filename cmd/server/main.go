@@ -29,7 +29,7 @@ import (
 
 //	@securityDefinitions.basic	BasicAuth on
 
-// @externalDocs.description	OpenAPI
+//	@externalDocs.description	OpenAPI
 func main() {
 	fx.New(CreateApp()).Run()
 }
@@ -82,8 +82,8 @@ func CreateLogger() error {
 	return nil
 }
 
-// ZapEventLogger return new event logger for fx application.
-func ZapEventLogger(logger *zap.Logger) fxevent.Logger {
+// _ return new event logger for fx application.
+func _(logger *zap.Logger) fxevent.Logger {
 	return &fxevent.ZapLogger{Logger: logger}
 }
 

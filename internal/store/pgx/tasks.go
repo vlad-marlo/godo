@@ -1,7 +1,12 @@
 package pgx
 
 import (
+	"context"
+	"errors"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/vlad-marlo/godo/internal/model"
 	"github.com/vlad-marlo/godo/internal/store"
 	"go.uber.org/zap"
 )
@@ -60,3 +65,38 @@ func NewTaskRepository(cli Client) *TaskRepository {
 //	}
 //	return nil
 //}
+
+// GetByGroup ...
+func (repo *TaskRepository) GetByGroup(ctx context.Context, group uuid.UUID) ([]*model.Task, error) {
+	q := `
+SELECT t.id, t.name, t.description, t.created_at, t.created_by, t.status
+FROM tasks t
+         JOIN task_group tg on t.id = tg.task_id
+WHERE tg.group_id = $1`
+
+	rows, err := repo.pool.Query(ctx, q, group)
+	if err != nil {
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+
+		return nil, Unknown(err)
+	}
+
+	defer rows.Close()
+
+	var resp []*model.Task
+	for rows.Next() {
+		t := new(model.Task)
+
+		if err = rows.Scan(&t.ID, &t.Name, &t.Description, &t.CreatedAt, &t.CreatedBy, &t.Status); err != nil {
+			repo.log.Warn("scan task while getting group tasks", TraceError(err)...)
+			return nil, Unknown(err)
+		}
+
+		resp = append(resp, t)
+	}
+
+	return resp, nil
+}

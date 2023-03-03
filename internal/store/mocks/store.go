@@ -65,6 +65,21 @@ func (mr *MockUserRepositoryMockRecorder) Exists(ctx, id interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockUserRepository)(nil).Exists), ctx, id)
 }
 
+// Get mocks base method.
+func (m *MockUserRepository) Get(ctx context.Context, id uuid.UUID) (*model.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Get", ctx, id)
+	ret0, _ := ret[0].(*model.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Get indicates an expected call of Get.
+func (mr *MockUserRepositoryMockRecorder) Get(ctx, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockUserRepository)(nil).Get), ctx, id)
+}
+
 // GetByEmail mocks base method.
 func (m *MockUserRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
 	m.ctrl.T.Helper()
@@ -143,6 +158,21 @@ func (m *MockGroupRepository) Exists(ctx context.Context, id string) bool {
 func (mr *MockGroupRepositoryMockRecorder) Exists(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockGroupRepository)(nil).Exists), ctx, id)
+}
+
+// GetByUser mocks base method.
+func (m *MockGroupRepository) GetByUser(ctx context.Context, user uuid.UUID) ([]*model.Group, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetByUser", ctx, user)
+	ret0, _ := ret[0].([]*model.Group)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetByUser indicates an expected call of GetByUser.
+func (mr *MockGroupRepositoryMockRecorder) GetByUser(ctx, user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByUser", reflect.TypeOf((*MockGroupRepository)(nil).GetByUser), ctx, user)
 }
 
 // GetRoleOfMember mocks base method.
@@ -312,6 +342,21 @@ func NewMockTaskRepository(ctrl *gomock.Controller) *MockTaskRepository {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockTaskRepository) EXPECT() *MockTaskRepositoryMockRecorder {
 	return m.recorder
+}
+
+// GetByGroup mocks base method.
+func (m *MockTaskRepository) GetByGroup(ctx context.Context, group uuid.UUID) ([]*model.Task, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetByGroup", ctx, group)
+	ret0, _ := ret[0].([]*model.Task)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetByGroup indicates an expected call of GetByGroup.
+func (mr *MockTaskRepositoryMockRecorder) GetByGroup(ctx, group interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByGroup", reflect.TypeOf((*MockTaskRepository)(nil).GetByGroup), ctx, group)
 }
 
 // MockStore is a mock of Store interface.

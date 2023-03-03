@@ -210,6 +210,9 @@ func (s *Service) createAuthToken(ctx context.Context, u *model.User) (*model.Cr
 
 // CreateInvite ...
 func (s *Service) CreateInvite(ctx context.Context, user uuid.UUID, group uuid.UUID, role *model.Role, limit int) (*model.CreateInviteResponse, error) {
+	if limit <= 0 {
+		return nil, service.ErrBadInviteLimit
+	}
 	userRole, err := s.store.Group().GetRoleOfMember(ctx, user, group)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
@@ -252,4 +255,58 @@ func generateRandom(size int) (string, error) {
 		return "", err
 	}
 	return base64.StdEncoding.EncodeToString(b), nil
+}
+
+// GetMe ...
+func (s *Service) GetMe(ctx context.Context, user uuid.UUID) (*model.GetMeResponse, error) {
+	u, err := s.store.User().Get(ctx, user)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrNotFound):
+			return nil, service.ErrUserNotFound
+		case errors.Is(err, store.ErrUnknown):
+			return nil, service.ErrInternal.With(zap.Error(err))
+		default:
+		}
+		return nil, service.ErrInternal.With(zap.Error(err))
+	}
+
+	res := &model.GetMeResponse{
+		ID:     user,
+		Email:  u.Email,
+		Groups: []model.GroupInUser{},
+	}
+
+	var groups []*model.Group
+	groups, err = s.store.Group().GetByUser(ctx, user)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrNotFound):
+			return nil, service.ErrNotFound
+		default:
+		}
+		return nil, service.ErrInternal.With(zap.Error(err))
+	}
+
+	for _, group := range groups {
+		var tasks []*model.Task
+
+		tasks, err = s.store.Task().GetByGroup(ctx, group.ID)
+		if err != nil {
+			if errors.Is(err, store.ErrNotFound) {
+				return nil, service.ErrNotFound
+			}
+			return nil, service.ErrInternal.With(zap.Error(err))
+		}
+
+		res.Groups = append(res.Groups, model.GroupInUser{
+			ID:          group.ID,
+			Name:        group.Name,
+			Description: group.Description,
+			Tasks:       tasks,
+		})
+
+	}
+
+	return res, nil
 }

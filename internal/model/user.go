@@ -52,4 +52,11 @@ type (
 		TokenType   string `json:"token_type"`
 		AccessToken string `json:"access_token"`
 	}
+
+	// GetMeResponse ...
+	GetMeResponse struct {
+		ID     uuid.UUID     `json:"id"`
+		Email  string        `json:"email"`
+		Groups []GroupInUser `json:"groups,omitempty"`
+	}
 )

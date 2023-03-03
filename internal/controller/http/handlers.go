@@ -342,3 +342,33 @@ func (s *Server) UseInvite(w http.ResponseWriter, r *http.Request) {
 	}
 	s.respond(w, http.StatusOK, nil, reqID)
 }
+
+// UserMe return user profile.
+//
+//	@Tags		Users
+//	@Summary	Get summary info about user.
+//	@ID			users_me
+//	@Accept		plain
+//	@Produce	json
+//
+//	@Success	200	{string}	model.GetMeResponse
+//	@Failure	401	{object}	model.Error
+//	@Failure	404	{object}	model.Error
+//	@Failure	500	{object}	model.Error
+//
+//	@Router		/users/me [get]
+func (s *Server) UserMe(w http.ResponseWriter, r *http.Request) {
+	reqID := ReqIDField(middleware.GetReqID(r.Context()))
+
+	u := mw.UserFromCtx(r.Context())
+	resp, err := s.srv.GetMe(r.Context(), u)
+	if err != nil {
+		if fErr, ok := err.(*fielderr.Error); ok {
+			s.respond(w, fErr.CodeHTTP(), fErr.Data(), append(fErr.Fields(), reqID)...)
+			return
+		}
+		s.respond(w, http.StatusInternalServerError, nil, reqID, zap.Error(err))
+		return
+	}
+	s.respond(w, http.StatusOK, resp, reqID)
+}

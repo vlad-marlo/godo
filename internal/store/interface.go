@@ -12,10 +12,12 @@ import (
 type UserRepository interface {
 	// Create creates new record about user u.
 	Create(ctx context.Context, u *model.User) error
-	// GetByEmail return user with provided email if exists.
+	// GetByEmail return user with provided email.
 	GetByEmail(ctx context.Context, email string) (*model.User, error)
 	// Exists return existence of user with provided id.
 	Exists(ctx context.Context, id string) (ok bool)
+	// Get return user with provided id.
+	Get(ctx context.Context, id uuid.UUID) (*model.User, error)
 }
 
 // GroupRepository give user access to group storage - Create, Update, Delete, check existence of groups.
@@ -28,6 +30,7 @@ type GroupRepository interface {
 	AddTask(ctx context.Context, task, group string) error
 	// UserExists checks existence of user in group members.
 	UserExists(ctx context.Context, group, user string) (ok bool)
+	GetByUser(ctx context.Context, user uuid.UUID) ([]*model.Group, error)
 	// GetRoleOfMember return role of member in group.
 	GetRoleOfMember(ctx context.Context, user, group uuid.UUID) (role *model.Role, err error)
 }
@@ -41,13 +44,19 @@ type TokenRepository interface {
 }
 
 type InviteRepository interface {
+	// Create creates invite with provided data.
 	Create(ctx context.Context, invite uuid.UUID, r *model.Role, group uuid.UUID, uses int) error
+	// Exists checks existence valid invite with provided data.
 	Exists(ctx context.Context, invite, group uuid.UUID) bool
+	// Use decrements left uses of invite and adds user to group in tx.
 	Use(ctx context.Context, invite uuid.UUID, user uuid.UUID) error
 }
 
 // TaskRepository ...
 type TaskRepository interface {
+
+	// GetByGroup return all tasks that are related to group.
+	GetByGroup(ctx context.Context, group uuid.UUID) ([]*model.Task, error)
 	//Create(ctx context.Context, task *model.Task) error
 }
 

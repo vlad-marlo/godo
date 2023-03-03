@@ -22,4 +22,6 @@ type Interface interface {
 	CreateInvite(ctx context.Context, user uuid.UUID, group uuid.UUID, role *model.Role, limit int) (*model.CreateInviteResponse, error)
 	// UseInvite applies use to group if invite data is ok.
 	UseInvite(ctx context.Context, user uuid.UUID, group uuid.UUID, invite uuid.UUID) error
+	// GetMe ...
+	GetMe(ctx context.Context, user uuid.UUID) (*model.GetMeResponse, error)
 }

@@ -28,11 +28,30 @@ func NewInviteRepository(cli Client) *InviteRepository {
 
 // Create stores invite with provided data.
 func (repo *InviteRepository) Create(ctx context.Context, invite uuid.UUID, r *model.Role, group uuid.UUID, uses int) error {
-	if _, err := repo.pool.Exec(ctx, `INSERT INTO invites(id, group_id, role_id, use_count)
-VALUES ($1,
-        $2,
-        (SELECT x.id FROM roles x WHERE x.tasks = $4 AND x.members = $5 AND x.reviews = $6 AND x.comments = $7 LIMIT 1),
-        $3);`, invite, group, uses, r.Tasks, r.Members, r.Reviews, r.Comments); err != nil {
+	if err := repo.pool.QueryRow(
+		ctx,
+		`INSERT INTO roles(members, tasks, reviews, "comments")
+VALUES ($1, $2, $3, $4)
+ON CONFLICT DO NOTHING
+RETURNING id`,
+		r.Members,
+		r.Tasks,
+		r.Reviews,
+		r.Comments,
+	).Scan(&r.ID); err != nil {
+		repo.log.Warn("create role", TraceError(err)...)
+		return Unknown(err)
+	}
+
+	if _, err := repo.pool.Exec(
+		ctx,
+		`INSERT INTO invites(id, group_id, role_id, use_count)
+VALUES ($1, $2, $3, $4);`,
+		invite,
+		group,
+		r.ID,
+		uses,
+	); err != nil {
 
 		if pgErr, ok := err.(*pgconn.PgError); ok {
 
@@ -65,6 +84,7 @@ func (repo *InviteRepository) Exists(ctx context.Context, invite, group uuid.UUI
 	return ok
 }
 
+// Use add user to group if invite is right.
 func (repo *InviteRepository) Use(ctx context.Context, invite uuid.UUID, user uuid.UUID) error {
 	tx, err := repo.pool.Begin(ctx)
 	if err != nil {

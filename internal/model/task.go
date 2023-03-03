@@ -9,11 +9,13 @@ import (
 type (
 	// Task ...
 	Task struct {
-		ID          uuid.UUID
-		Name        string
-		Description string
-		CreatedAt   time.Time
-		CreatedBy   uuid.UUID
+		ID          uuid.UUID `json:"id"`
+		Name        string    `json:"name"`
+		Description string    `json:"description"`
+		CreatedAt   time.Time `json:"-"`
+		CreatedBy   uuid.UUID `json:"created-by"`
+		Created     int64     `json:"created-at"`
+		Status      string    `json:"status"`
 	}
 	// TaskCreateRequest ...
 	TaskCreateRequest struct {
@@ -27,31 +29,18 @@ type (
 		// Group - optional filed that show group to which task will be related.
 		Group string `json:"group"`
 	}
-	TaskCreateResponse struct {
-		ID          uuid.UUID `json:"id"`
-		Name        string    `json:"name"`
-		Description string    `json:"description"`
-		CreatedAt   time.Time `json:"-"`
-		Created     int64     `json:"created-at"`
-	}
-	// TaskInGroupResponse show short info about task - his name and id.
-	// User can check verbose info about task by id.
-	TaskInGroupResponse struct {
-		ID   uuid.UUID `json:"id"`
-		Name string    `json:"name"`
-	}
 )
 
 // MarshalJSON implements json.Marshaler.
 // Used to pass correct time layout to user.
-func (task *TaskCreateResponse) MarshalJSON() ([]byte, error) {
+func (task *Task) MarshalJSON() ([]byte, error) {
 	task.Created = task.CreatedAt.Unix()
 	return json.Marshal(task)
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
 // That gives developer flexibility to not thing about correct time layout passed into.
-func (task *TaskCreateResponse) UnmarshalJSON(data []byte) (err error) {
+func (task *Task) UnmarshalJSON(data []byte) (err error) {
 	if err = json.Unmarshal(data, &task); err != nil {
 		return err
 	}

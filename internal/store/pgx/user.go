@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -88,9 +89,22 @@ func (repo *UserRepository) GetByEmail(
 			return nil, store.ErrNotFound
 		}
 
-		repo.log.Debug("unknown error while getting user", TraceError(err)...)
+		repo.log.Debug("unknown error while getting user by email", TraceError(err)...)
 		return nil, store.ErrUnknown
 	}
 
+	return u, nil
+}
+
+// Get reutnr
+func (repo *UserRepository) Get(ctx context.Context, id uuid.UUID) (u *model.User, err error) {
+	u = new(model.User)
+	if err = repo.pool.QueryRow(ctx, `SELECT x.id, x.email, x.pass FROM users x WHERE x.id = $1 `, id).Scan(&u.ID, &u.Email, &u.Pass); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		repo.log.Debug("unknown error while getting user by id", TraceError(err)...)
+		return nil, Unknown(err)
+	}
 	return u, nil
 }
