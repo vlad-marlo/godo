@@ -25,9 +25,9 @@ type (
 		Description string `json:"description"`
 		// Users - field which relating users to task.
 		// If not defined, will create task only for user, who creates this task or for group.
-		Users []string `json:"users"`
+		Users []uuid.UUID `json:"users"`
 		// Group - optional filed that show group to which task will be related.
-		Group string `json:"group"`
+		Group uuid.UUID `json:"group"`
 	}
 	GetTasksResponse struct {
 		Count int     `json:"count"`

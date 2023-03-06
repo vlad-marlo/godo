@@ -49,6 +49,7 @@ type Service interface {
 	GetUserTasks(ctx context.Context, user uuid.UUID) (*model.GetTasksResponse, error)
 	// GetTask return task if user related to task and task exists.
 	GetTask(ctx context.Context, user, task uuid.UUID) (*model.Task, error)
+	CreateTask(ctx context.Context, user uuid.UUID, task model.TaskCreateRequest) (*model.Task, error)
 }
 
 // Server ...

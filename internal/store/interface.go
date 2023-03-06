@@ -56,26 +56,31 @@ type InviteRepository interface {
 
 // TaskRepository ...
 type TaskRepository interface {
-
 	// AllByGroupAndUser return all tasks that are related to group.
 	AllByGroupAndUser(ctx context.Context, group uuid.UUID, user uuid.UUID) ([]*model.Task, error)
 	// AllByUser ...
 	AllByUser(ctx context.Context, user uuid.UUID) ([]*model.Task, error)
-
+	// GetByUserAndID return task that has id task and is related to user.
 	GetByUserAndID(ctx context.Context, user, task uuid.UUID) (*model.Task, error)
-	//Create(ctx context.Context, task *model.Task) error
+	// Create creates record about task.
+	Create(ctx context.Context, task *model.Task) error
+	// AddToUser ...
+	AddToUser(ctx context.Context, from, task, to uuid.UUID) error
+	// AddToGroup ...
+	AddToGroup(ctx context.Context, task, group uuid.UUID) error
 }
 
 // Store is composite object that does not include any storage function.
+//
 // Store is only accessor to different repositories.
 type Store interface {
-	// User is UserRepository getter.
+	// User is UserRepository accessor.
 	User() UserRepository
-	// Group is GroupRepository getter.
+	// Group is GroupRepository accessor.
 	Group() GroupRepository
-	// Token is TokenRepository getter.
+	// Token is TokenRepository accessor.
 	Token() TokenRepository
-	// Task is TaskRepository getter.
+	// Task is TaskRepository accessor.
 	Task() TaskRepository
 	// Invite is InviteRepository accessor.
 	Invite() InviteRepository

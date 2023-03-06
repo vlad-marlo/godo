@@ -349,6 +349,70 @@
                 }
             }
         },
+        "/tasks/": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Create task.",
+                "operationId": "create_task",
+                "parameters": [
+                    {
+                        "description": "task",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.TaskCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Task"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/tasks/{task_id}": {
             "get": {
                 "consumes": [
@@ -788,6 +852,30 @@
                 },
                 "status": {
                     "type": "string"
+                }
+            }
+        },
+        "model.TaskCreateRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "description": "Description - is verbose info about task. Could be any string.",
+                    "type": "string"
+                },
+                "group": {
+                    "description": "Group - optional filed that show group to which task will be related.",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "Name is name of task.",
+                    "type": "string"
+                },
+                "users": {
+                    "description": "Users - field which relating users to task.\nIf not defined, will create task only for user, who creates this task or for group.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },

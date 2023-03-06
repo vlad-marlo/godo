@@ -446,3 +446,48 @@ func (s *Server) GetTask(w http.ResponseWriter, r *http.Request) {
 
 	s.respond(w, http.StatusOK, resp, reqID)
 }
+
+// CreateTask create task.
+//
+//	@Tags		Tasks
+//	@Summary	Create task.
+//	@ID			create_task
+//	@Accept		json
+//	@Produce	json
+//	@Param		request	body		model.TaskCreateRequest	true	"task"
+//
+//	@Success	200		{object}	model.Task
+//	@Failure	400		{object}	model.Error
+//	@Failure	401		{object}	model.Error
+//	@Failure	403		{object}	model.Error
+//	@Failure	409		{object}	model.Error
+//	@Failure	500		{object}	model.Error
+//
+//	@Router		/tasks/ [post]
+func (s *Server) CreateTask(w http.ResponseWriter, r *http.Request) {
+	var buf bytes.Buffer
+	reqID := ReqIDField(middleware.GetReqID(r.Context()))
+	if _, err := io.Copy(&buf, r.Body); err != nil {
+		s.respond(w, http.StatusInternalServerError, nil, zap.Error(err), reqID)
+		return
+	}
+	_ = r.Body.Close()
+
+	u := mw.UserFromCtx(r.Context())
+
+	var req model.TaskCreateRequest
+	if err := json.NewDecoder(&buf).Decode(&req); err != nil {
+		s.respond(w, http.StatusBadRequest, nil, zap.Error(err), reqID)
+	}
+
+	resp, err := s.srv.CreateTask(r.Context(), u, req)
+	if err != nil {
+		if fErr, ok := err.(*fielderr.Error); ok {
+			s.respond(w, fErr.CodeHTTP(), fErr.Data(), append(fErr.Fields(), reqID)...)
+			return
+		}
+		s.respond(w, http.StatusInternalServerError, nil, zap.Error(err), reqID)
+		return
+	}
+	s.respond(w, http.StatusCreated, resp, reqID)
+}

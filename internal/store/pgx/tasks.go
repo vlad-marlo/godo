@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vlad-marlo/godo/internal/model"
 	"github.com/vlad-marlo/godo/internal/store"
@@ -142,4 +144,86 @@ WHERE t.id = $2 AND (tu.user_id = $1 OR t.created_by = $1 OR (uig.user_id = $1 A
 		return nil, Unknown(err)
 	}
 	return t, nil
+}
+
+func (repo *TaskRepository) Create(ctx context.Context, task *model.Task) error {
+	if _, err := repo.pool.Exec(
+		ctx,
+		`INSERT INTO tasks(id, name, description, created_at, created_by, status)
+VALUES ($1, $2, $3, $4, $5, $6);`,
+		task.ID,
+		task.Name,
+		task.Description,
+		task.CreatedAt,
+		task.CreatedBy,
+		task.Status,
+	); err != nil {
+		if pgErr, ok := err.(*pgconn.PgError); ok {
+			switch pgErr.Code {
+			case pgerrcode.UniqueViolation:
+				return store.ErrUniqueViolation
+			case pgerrcode.ForeignKeyViolation, pgerrcode.InvalidForeignKey:
+				return store.ErrFKViolation
+			}
+		}
+		repo.log.Log(_unknownLevel, "tasks: create", TraceError(err)...)
+
+		return Unknown(err)
+	}
+
+	return nil
+}
+
+func (repo *TaskRepository) AddToGroup(ctx context.Context, task, group uuid.UUID) error {
+	if _, err := repo.pool.Exec(ctx, `INSERT INTO task_group(task_id, group_id) VALUES ($1, $2);`, task, group); err != nil {
+		if pgErr, ok := err.(*pgconn.PgError); ok {
+			switch pgErr.Code {
+			case pgerrcode.UniqueViolation:
+				return store.ErrUniqueViolation
+			case pgerrcode.ForeignKeyViolation, pgerrcode.InvalidForeignKey:
+				return store.ErrFKViolation
+			}
+		}
+
+		repo.log.Log(_unknownLevel, "add task to group", TraceError(err)...)
+		return Unknown(err)
+	}
+	return nil
+}
+
+// AddToUser add
+func (repo *TaskRepository) AddToUser(ctx context.Context, from, task, to uuid.UUID) error {
+	var ok bool
+	// check existence of group where exists both of users and user, who want to add task has permission.
+	_ = repo.pool.QueryRow(
+		ctx,
+		`SELECT EXISTS(
+               SELECT *
+               FROM groups g
+                        LEFT JOIN user_in_group uig on g.id = uig.group_id
+                        LEFT JOIN roles r on r.id = uig.role_id
+               WHERE EXISTS(SELECT * FROM user_in_group WHERE user_id = $1 AND group_id = g.id)
+                 AND EXISTS(SELECT * FROM user_in_group WHERE user_id = $2 AND group_id = g.id)
+                 AND (uig = $2 AND (uig.is_admin OR r.tasks >= 2))
+           );`,
+		to,
+		from,
+	).Scan(&ok)
+	if !ok {
+		return nil
+	}
+
+	if _, err := repo.pool.Exec(ctx, `INSERT INTO task_user(user_id, task_id)
+VALUES ($1, $2);`, to, task, from); err != nil {
+		if pgErr, ok := err.(*pgconn.PgError); ok {
+			switch pgErr.Code {
+			case pgerrcode.UniqueViolation:
+				return store.ErrUniqueViolation
+			case pgerrcode.ForeignKeyViolation, pgerrcode.InvalidForeignKey:
+				return store.ErrFKViolation
+			}
+		}
+		return Unknown(err)
+	}
+	return nil
 }

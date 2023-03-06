@@ -330,6 +330,34 @@ func (m *MockTaskRepository) EXPECT() *MockTaskRepositoryMockRecorder {
 	return m.recorder
 }
 
+// AddToGroup mocks base method.
+func (m *MockTaskRepository) AddToGroup(ctx context.Context, task, group uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddToGroup", ctx, task, group)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddToGroup indicates an expected call of AddToGroup.
+func (mr *MockTaskRepositoryMockRecorder) AddToGroup(ctx, task, group interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddToGroup", reflect.TypeOf((*MockTaskRepository)(nil).AddToGroup), ctx, task, group)
+}
+
+// AddToUser mocks base method.
+func (m *MockTaskRepository) AddToUser(ctx context.Context, from, task, to uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddToUser", ctx, from, task, to)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddToUser indicates an expected call of AddToUser.
+func (mr *MockTaskRepositoryMockRecorder) AddToUser(ctx, from, task, to interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddToUser", reflect.TypeOf((*MockTaskRepository)(nil).AddToUser), ctx, from, task, to)
+}
+
 // AllByGroupAndUser mocks base method.
 func (m *MockTaskRepository) AllByGroupAndUser(ctx context.Context, group, user uuid.UUID) ([]*model.Task, error) {
 	m.ctrl.T.Helper()
@@ -358,6 +386,20 @@ func (m *MockTaskRepository) AllByUser(ctx context.Context, user uuid.UUID) ([]*
 func (mr *MockTaskRepositoryMockRecorder) AllByUser(ctx, user interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllByUser", reflect.TypeOf((*MockTaskRepository)(nil).AllByUser), ctx, user)
+}
+
+// Create mocks base method.
+func (m *MockTaskRepository) Create(ctx context.Context, task *model.Task) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Create", ctx, task)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Create indicates an expected call of Create.
+func (mr *MockTaskRepositoryMockRecorder) Create(ctx, task interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockTaskRepository)(nil).Create), ctx, task)
 }
 
 // GetByUserAndID mocks base method.
