@@ -42,7 +42,7 @@ func TestService_CreateGroup_Negative_ErrGroupAlreadyExists(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	str := mocks.NewMockStore(ctrl)
 	grp := mocks.NewMockGroupRepository(ctrl)
-	grp.EXPECT().Create(gomock.Any(), gomock.Any()).Return(store.ErrGroupAlreadyExists)
+	grp.EXPECT().Create(gomock.Any(), gomock.Any()).Return(store.ErrUniqueViolation)
 
 	str.EXPECT().Group().Return(grp)
 

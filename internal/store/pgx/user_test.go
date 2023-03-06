@@ -78,3 +78,30 @@ func TestUserRepository_GetByName(t *testing.T) {
 
 	assert.False(t, s.Exists(ctx, TestUser2.ID.String()))
 }
+
+func TestUserRepository_GetByID(t *testing.T) {
+	ctx := context.Background()
+
+	s, td := testUsers(t)
+	defer td()
+
+	u, err := s.Get(ctx, TestUser1.ID)
+	assert.Nil(t, u)
+	assert.ErrorIs(t, err, store.ErrNotFound)
+
+	assert.False(t, s.Exists(ctx, TestUser1.ID.String()))
+
+	assert.NoError(t, s.Create(ctx, TestUser1))
+	u, err = s.Get(ctx, TestUser1.ID)
+
+	assert.Equal(t, TestUser1, u)
+	assert.NoError(t, err)
+	assert.True(t, s.Exists(ctx, TestUser1.ID.String()))
+
+	u, err = s.Get(ctx, TestUser2.ID)
+	assert.Nil(t, u)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, store.ErrNotFound)
+
+	assert.False(t, s.Exists(ctx, TestUser2.ID.String()))
+}

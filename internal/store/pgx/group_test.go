@@ -26,7 +26,7 @@ func TestGroupRepository_Create_Negative_BadData(t *testing.T) {
 	}
 	err := repo.Create(ctx, grp)
 	assert.Error(t, err)
-	assert.ErrorIs(t, err, store.ErrBadData)
+	assert.ErrorIs(t, err, store.ErrFKViolation)
 }
 
 func TestGroupRepository_Create_Positive(t *testing.T) {
@@ -60,23 +60,7 @@ func TestGroupRepository_Create_AlreadyExists(t *testing.T) {
 	require.NoError(t, err)
 	err = grp.Create(ctx, g)
 	require.Error(t, err)
-	assert.ErrorIs(t, err, store.ErrGroupAlreadyExists)
-}
-
-func TestGroupRepository_Exists(t *testing.T) {
-	grp, usr, td := testGroupUser(t)
-	defer td()
-
-	ctx := context.Background()
-
-	err := usr.Create(ctx, TestUser1)
-	require.NoError(t, err)
-
-	ok := grp.Exists(ctx, TestGroup1.ID.String())
-	require.False(t, ok)
-	require.NoError(t, grp.Create(ctx, TestGroup1))
-	ok = grp.Exists(ctx, TestGroup1.ID.String())
-	assert.True(t, ok)
+	assert.ErrorIs(t, err, store.ErrUniqueViolation)
 }
 
 func TestGroupRepository_Get(t *testing.T) {
@@ -87,7 +71,7 @@ func TestGroupRepository_Get(t *testing.T) {
 	require.NoError(t, err)
 
 	var group *model.Group
-	group, err = grp.Get(ctx, TestGroup1.ID.String())
+	group, err = grp.Get(ctx, TestGroup1.ID)
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, store.ErrNotFound)
 	assert.Nil(t, group)
@@ -95,11 +79,11 @@ func TestGroupRepository_Get(t *testing.T) {
 	err = grp.Create(ctx, TestGroup1)
 	assert.NoError(t, err)
 
-	group, err = grp.Get(ctx, TestGroup1.ID.String())
+	group, err = grp.Get(ctx, TestGroup1.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, group, TestGroup1)
 
-	group, err = grp.Get(ctx, TestGroup2.ID.String())
+	group, err = grp.Get(ctx, TestGroup2.ID)
 	assert.Nil(t, group)
 	assert.ErrorIs(t, err, store.ErrNotFound)
 	assert.Error(t, err)

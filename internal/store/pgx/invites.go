@@ -2,8 +2,10 @@ package pgx
 
 import (
 	"context"
+	"errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vlad-marlo/godo/internal/model"
@@ -28,18 +30,24 @@ func NewInviteRepository(cli Client) *InviteRepository {
 
 // Create stores invite with provided data.
 func (repo *InviteRepository) Create(ctx context.Context, invite uuid.UUID, r *model.Role, group uuid.UUID, uses int) error {
-	if err := repo.pool.QueryRow(
+	if _, err := repo.pool.Exec(
 		ctx,
 		`INSERT INTO roles(members, tasks, reviews, "comments")
 VALUES ($1, $2, $3, $4)
-ON CONFLICT DO NOTHING
-RETURNING id`,
+ON CONFLICT DO NOTHING`,
 		r.Members,
 		r.Tasks,
 		r.Reviews,
 		r.Comments,
-	).Scan(&r.ID); err != nil {
-		repo.log.Warn("create role", TraceError(err)...)
+	); err != nil {
+		repo.log.Log(_unknownLevel, "create role", TraceError(err)...)
+		return Unknown(err)
+	}
+	if err := repo.pool.QueryRow(ctx, `SELECT id FROM roles WHERE members = $1 AND tasks = $2 AND reviews = $3 AND "comments" = $4;`, r.Members, r.Tasks, r.Reviews, r.Comments).Scan(&r.ID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return store.ErrNotFound
+		}
+		repo.log.Log(_unknownLevel, "get role id", TraceError(err)...)
 		return Unknown(err)
 	}
 

@@ -43,9 +43,12 @@ type Service interface {
 	CreateInvite(ctx context.Context, user, group uuid.UUID, role *model.Role, limit int) (*model.CreateInviteResponse, error)
 	// UseInvite add user to group if invite is ok.
 	UseInvite(ctx context.Context, user, group, invite uuid.UUID) error
-
-	// GetMe ...
+	// GetMe return user's info
 	GetMe(ctx context.Context, user uuid.UUID) (*model.GetMeResponse, error)
+	// GetUserTasks return all tasks that are related to user.
+	GetUserTasks(ctx context.Context, user uuid.UUID) (*model.GetTasksResponse, error)
+	// GetTask return task if user related to task and task exists.
+	GetTask(ctx context.Context, user, task uuid.UUID) (*model.Task, error)
 }
 
 // Server ...
@@ -175,6 +178,10 @@ func (s *Server) configureRoutes() {
 				r.Post("/", s.CreateGroup)
 				r.Post("/{group_id}/invite", s.CreateInviteViaGroup)
 				r.Get("/{group_id}/apply", s.UseInvite)
+			})
+			r.Route("/tasks", func(r chi.Router) {
+				r.Get("/", s.AllTasks)
+				r.Get("/{task_id}", s.GetTask)
 			})
 			r.Route("/invites", func(r chi.Router) {
 				r.Post("/", s.CreateInviteLink)

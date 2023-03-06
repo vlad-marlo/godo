@@ -30,16 +30,6 @@ func NewGroupRepository(cli Client) *GroupRepository {
 	}
 }
 
-// Exists return exist group with id or not.
-func (repo *GroupRepository) Exists(ctx context.Context, id string) (ok bool) {
-	_ = repo.pool.QueryRow(
-		ctx,
-		`SELECT EXISTS(SELECT * FROM groups WHERE id = $1);`,
-		id,
-	).Scan(&ok)
-	return ok
-}
-
 // Create created new record about group.
 //
 // Errors:
@@ -67,23 +57,19 @@ func (repo *GroupRepository) Create(ctx context.Context, group *model.Group) err
 		group.Owner,
 	).Scan(&group.CreatedAt); err != nil {
 
-		repo.log.Debug(
-			"create user: pgx error",
-			TraceError(err)...,
-		)
+		repo.log.Log(_unknownLevel, "create user", TraceError(err)...)
 
 		if pgErr, ok := err.(*pgconn.PgError); ok {
-
-			if pgErr.Code == pgerrcode.UniqueViolation {
-				return store.ErrGroupAlreadyExists
+			switch pgErr.Code {
+			case pgerrcode.UniqueViolation:
+				return store.ErrUniqueViolation
+			case pgerrcode.InvalidForeignKey, pgerrcode.ForeignKeyViolation:
+				return store.ErrFKViolation
 			}
 
-			if pgErr.Code == pgerrcode.InvalidForeignKey || pgerrcode.ForeignKeyViolation == pgErr.Code {
-				return store.ErrBadData
-			}
 		}
 
-		return fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
+		return Unknown(err)
 	}
 
 	if _, err = tx.Exec(
@@ -122,7 +108,7 @@ func (repo *GroupRepository) UserExists(ctx context.Context, group, user string)
 		group,
 		user,
 	).Scan(&ok); err != nil {
-		repo.log.Error("get user existence in group", TraceError(err)...)
+		repo.log.Log(_unknownLevel, "get user existence in group", TraceError(err)...)
 	}
 	return
 }
@@ -144,7 +130,7 @@ func (repo *GroupRepository) AddTask(ctx context.Context, task, group string) er
 			return store.ErrBadData
 		}
 
-		repo.log.Error("add task to group", TraceError(err)...)
+		repo.log.Log(_unknownLevel, "add task to group", TraceError(err)...)
 		return Unknown(err)
 	}
 
@@ -171,7 +157,7 @@ WHERE uig.user_id = $1
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, store.ErrNotFound
 		}
-		repo.log.Error("get role of user", TraceError(err)...)
+		repo.log.Log(_unknownLevel, "get role of user in group", TraceError(err)...)
 		return nil, Unknown(err)
 	}
 	return
@@ -194,7 +180,7 @@ WHERE uig.user_id = $1;`
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, store.ErrNotFound
 		}
-		repo.log.Warn("doing query; get groups by user", TraceError(err)...)
+		repo.log.Log(_unknownLevel, "get groups by user", TraceError(err)...)
 		return nil, Unknown(err)
 	}
 	defer rows.Close()
@@ -214,4 +200,28 @@ WHERE uig.user_id = $1;`
 		return nil, Unknown(err)
 	}
 	return
+}
+
+// Get return group by id
+func (repo *GroupRepository) Get(ctx context.Context, id uuid.UUID) (*model.Group, error) {
+	g := new(model.Group)
+	if err := repo.pool.QueryRow(
+		ctx,
+		`SELECT g.id, g.name, g.description, g.created_at, g.owner FROM groups g WHERE g.id = $1`,
+		id,
+	).Scan(
+		&g.ID,
+		&g.Name,
+		&g.Description,
+		&g.CreatedAt,
+		&g.Owner,
+	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		repo.log.Log(_unknownLevel, "get group by id", TraceError(err)...)
+		return nil, Unknown(err)
+	}
+	return g, nil
+
 }

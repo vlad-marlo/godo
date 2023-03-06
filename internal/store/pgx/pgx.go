@@ -4,14 +4,16 @@ package pgx
 
 import (
 	"context"
-
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/vlad-marlo/godo/internal/store"
 )
 
 var _ store.Store = (*Store)(nil)
+
+const _unknownLevel = zapcore.WarnLevel
 
 // Store is implementation of storage Interface.
 type Store struct {

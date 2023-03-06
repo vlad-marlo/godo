@@ -2,6 +2,7 @@ package pgx
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"github.com/vlad-marlo/godo/internal/model"
 	"github.com/vlad-marlo/godo/internal/store"
 	"log"
@@ -80,7 +81,7 @@ func TestBadCli(t *testing.T) {
 	ctx := context.Background()
 
 	assert.False(t, st.user.Exists(ctx, "sd"))
-	group, err := st.group.Get(context.Background(), TestGroup1.ID.String())
+	group, err := st.group.Get(context.Background(), TestGroup1.ID)
 	assert.Nil(t, group)
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, store.ErrUnknown)
@@ -97,6 +98,11 @@ func TestBadCli(t *testing.T) {
 
 	var u *model.User
 	u, err = st.user.GetByEmail(context.Background(), "xd")
+	assert.Nil(t, u)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, store.ErrUnknown)
+
+	u, err = st.user.Get(context.Background(), uuid.Nil)
 	assert.Nil(t, u)
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, store.ErrUnknown)

@@ -96,6 +96,21 @@ func (mr *MockServiceMockRecorder) GetMe(ctx, user interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMe", reflect.TypeOf((*MockService)(nil).GetMe), ctx, user)
 }
 
+// GetTask mocks base method.
+func (m *MockService) GetTask(ctx context.Context, user, task uuid.UUID) (*model.Task, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTask", ctx, user, task)
+	ret0, _ := ret[0].(*model.Task)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTask indicates an expected call of GetTask.
+func (mr *MockServiceMockRecorder) GetTask(ctx, user, task interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTask", reflect.TypeOf((*MockService)(nil).GetTask), ctx, user, task)
+}
+
 // GetUserFromToken mocks base method.
 func (m *MockService) GetUserFromToken(ctx context.Context, t string) (uuid.UUID, error) {
 	m.ctrl.T.Helper()
@@ -109,6 +124,21 @@ func (m *MockService) GetUserFromToken(ctx context.Context, t string) (uuid.UUID
 func (mr *MockServiceMockRecorder) GetUserFromToken(ctx, t interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserFromToken", reflect.TypeOf((*MockService)(nil).GetUserFromToken), ctx, t)
+}
+
+// GetUserTasks mocks base method.
+func (m *MockService) GetUserTasks(ctx context.Context, user uuid.UUID) (*model.GetTasksResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserTasks", ctx, user)
+	ret0, _ := ret[0].(*model.GetTasksResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserTasks indicates an expected call of GetUserTasks.
+func (mr *MockServiceMockRecorder) GetUserTasks(ctx, user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserTasks", reflect.TypeOf((*MockService)(nil).GetUserTasks), ctx, user)
 }
 
 // Ping mocks base method.

@@ -23,8 +23,11 @@ func (s *Service) CreateGroup(ctx context.Context, user uuid.UUID, name, descrip
 	}
 
 	if err := s.store.Group().Create(ctx, grp); err != nil {
-		if errors.Is(err, store.ErrGroupAlreadyExists) {
+		if errors.Is(err, store.ErrUniqueViolation) {
 			return nil, service.ErrGroupAlreadyExists
+		}
+		if errors.Is(err, store.ErrFKViolation) {
+			return nil, service.ErrBadData
 		}
 
 		return nil, service.ErrInternal.With(zap.Error(err))

@@ -16,14 +16,11 @@ func TestMockExists(t *testing.T) {
 			ctx := context.Background()
 			ctrl := gomock.NewController(t)
 			userRepo := mocks.NewMockUserRepository(ctrl)
-			groupRepo := mocks.NewMockGroupRepository(ctrl)
 			invRepo := mocks.NewMockInviteRepository(ctrl)
 			userRepo.EXPECT().Exists(gomock.Any(), gomock.Any()).Return(exp)
-			groupRepo.EXPECT().Exists(gomock.Any(), gomock.Any()).Return(exp)
 			invRepo.EXPECT().Exists(gomock.Any(), gomock.Any(), gomock.Any()).Return(exp)
 
 			assert.Equal(t, exp, userRepo.Exists(ctx, ""))
-			assert.Equal(t, exp, groupRepo.Exists(ctx, ""))
 			assert.Equal(t, exp, invRepo.Exists(ctx, uuid.Nil, uuid.Nil))
 		})
 	}

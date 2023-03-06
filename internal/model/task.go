@@ -29,21 +29,29 @@ type (
 		// Group - optional filed that show group to which task will be related.
 		Group string `json:"group"`
 	}
+	GetTasksResponse struct {
+		Count int     `json:"count"`
+		Tasks []*Task `json:"tasks"`
+	}
 )
 
 // MarshalJSON implements json.Marshaler.
 // Used to pass correct time layout to user.
 func (task *Task) MarshalJSON() ([]byte, error) {
+	if task == nil {
+		return nil, nil
+	}
 	task.Created = task.CreatedAt.Unix()
-	return json.Marshal(task)
+	return json.Marshal(*task)
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
 // That gives developer flexibility to not thing about correct time layout passed into.
 func (task *Task) UnmarshalJSON(data []byte) (err error) {
-	if err = json.Unmarshal(data, &task); err != nil {
+	if err = json.Unmarshal(data, task); err != nil {
 		return err
 	}
+
 	task.CreatedAt = time.Unix(task.Created, 0)
 	return nil
 }

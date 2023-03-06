@@ -11,7 +11,6 @@ import (
 	"github.com/vlad-marlo/godo/internal/model"
 	"github.com/vlad-marlo/godo/internal/store"
 	"go.uber.org/zap"
-	"time"
 )
 
 var _ store.TokenRepository = (*TokenRepository)(nil)
@@ -43,7 +42,7 @@ func (repo *TokenRepository) Create(ctx context.Context, token *model.Token) err
 				return store.ErrTokenAlreadyExists
 			}
 		}
-		repo.log.Error("unknown error while creating new user token", TraceError(err)...)
+		repo.log.Log(_unknownLevel, "creating user token", TraceError(err)...)
 		return fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
 	}
 	return nil
@@ -60,14 +59,12 @@ func (repo *TokenRepository) Get(ctx context.Context, token string) (*model.Toke
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, store.ErrNotFound
 		}
-		repo.log.Error("unexpected error while getting user by token", TraceError(err)...)
-		return nil, fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
+
+		repo.log.Log(_unknownLevel, "getting user by token", TraceError(err)...)
+		return nil, Unknown(err)
 	}
 
 	// checking that token is valid - he does not expire or his expiration time was not.
-	if time.Now().UTC().After(t.ExpiresAt.UTC()) && t.Expires {
-		return nil, store.ErrTokenIsExpired
-	}
 
 	return &t, nil
 }

@@ -104,12 +104,6 @@ var (
 		Reviews:  2,
 		Comments: 1,
 	}
-	TestRole2 = &model.Role{
-		Members:  3,
-		Tasks:    4,
-		Reviews:  2,
-		Comments: 1,
-	}
 )
 
 // testStore ...

@@ -24,4 +24,8 @@ type Interface interface {
 	UseInvite(ctx context.Context, user uuid.UUID, group uuid.UUID, invite uuid.UUID) error
 	// GetMe ...
 	GetMe(ctx context.Context, user uuid.UUID) (*model.GetMeResponse, error)
+	// GetUserTasks return all tasks, related to user.
+	GetUserTasks(ctx context.Context, user uuid.UUID) (*model.GetTasksResponse, error)
+	// GetTask return task by id if user is related to it.
+	GetTask(ctx context.Context, user, task uuid.UUID) (*model.Task, error)
 }

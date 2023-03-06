@@ -104,6 +104,39 @@ definitions:
         example: additional info about error
         type: string
     type: object
+  model.GetMeResponse:
+    properties:
+      email:
+        type: string
+      groups:
+        items:
+          $ref: '#/definitions/model.GroupInUser'
+        type: array
+      id:
+        type: string
+    type: object
+  model.GetTasksResponse:
+    properties:
+      count:
+        type: integer
+      tasks:
+        items:
+          $ref: '#/definitions/model.Task'
+        type: array
+    type: object
+  model.GroupInUser:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      tasks:
+        items:
+          $ref: '#/definitions/model.Task'
+        type: array
+    type: object
   model.RegisterUserRequest:
     properties:
       email:
@@ -113,6 +146,21 @@ definitions:
       password:
         description: Password is password string
         example: strong_password
+        type: string
+    type: object
+  model.Task:
+    properties:
+      created-at:
+        type: integer
+      created-by:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      status:
         type: string
     type: object
   model.User:
@@ -328,6 +376,74 @@ paths:
       summary: Запрос состояния сервиса
       tags:
       - Server
+  /tasks:
+    get:
+      consumes:
+      - text/plain
+      operationId: get_tasks
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.GetTasksResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.Error'
+      summary: Get user tasks.
+      tags:
+      - Tasks
+  /tasks/{task_id}:
+    get:
+      consumes:
+      - text/plain
+      operationId: get_task
+      parameters:
+      - description: task id
+        in: path
+        name: task_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Task'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/model.Error'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.Error'
+      summary: Get task by ID.
+      tags:
+      - Tasks
   /users/me:
     get:
       consumes:
@@ -339,7 +455,7 @@ paths:
         "200":
           description: OK
           schema:
-            type: string
+            $ref: '#/definitions/model.GetMeResponse'
         "401":
           description: Unauthorized
           schema:

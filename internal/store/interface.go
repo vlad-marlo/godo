@@ -25,11 +25,13 @@ type GroupRepository interface {
 	// Create creates record about group if it does not exist.
 	Create(ctx context.Context, group *model.Group) error
 	// Exists returns existence of group with provided id.
-	Exists(ctx context.Context, id string) (ok bool)
+	//Exists(ctx context.Context, id string) (ok bool)
+
 	// AddTask create relation between task and group
 	AddTask(ctx context.Context, task, group string) error
 	// UserExists checks existence of user in group members.
 	UserExists(ctx context.Context, group, user string) (ok bool)
+	// GetByUser ...
 	GetByUser(ctx context.Context, user uuid.UUID) ([]*model.Group, error)
 	// GetRoleOfMember return role of member in group.
 	GetRoleOfMember(ctx context.Context, user, group uuid.UUID) (role *model.Role, err error)
@@ -55,8 +57,12 @@ type InviteRepository interface {
 // TaskRepository ...
 type TaskRepository interface {
 
-	// GetByGroup return all tasks that are related to group.
-	GetByGroup(ctx context.Context, group uuid.UUID) ([]*model.Task, error)
+	// AllByGroupAndUser return all tasks that are related to group.
+	AllByGroupAndUser(ctx context.Context, group uuid.UUID, user uuid.UUID) ([]*model.Task, error)
+	// AllByUser ...
+	AllByUser(ctx context.Context, user uuid.UUID) ([]*model.Task, error)
+
+	GetByUserAndID(ctx context.Context, user, task uuid.UUID) (*model.Task, error)
 	//Create(ctx context.Context, task *model.Task) error
 }
 
