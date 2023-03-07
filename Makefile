@@ -35,5 +35,16 @@ lines:
 
 .PHONY: dock
 dock:
-	docker-compose
+	docker build . --file=infra/httpserver.dockerfile --tag="marlooooo/godo_backend:http-latest"
+	docker build . --file=infra/grpcserver.dockerfile --tag="marlooooo/godo_backend:grpc-latest"
+	docker build . --file=infra/server.dockerfile --tag="marlooooo/godo_backend:latest"
+
+.PHONY: run
+run:
+	docker build . --file=infra/httpserver.dockerfile --tag="marlooooo/godo_backend:http-latest"
+	docker compose --file=infra/docker-compose.yml up -d
+
+.PHONY: push
+push:
+	docker push "marlooooo/godo_backend" -a
 .DEFAULT_GOAL := build

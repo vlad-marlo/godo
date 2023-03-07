@@ -1,13 +1,25 @@
 package model
 
+import "github.com/google/uuid"
+
 type (
-	// InviteUserRequest ...
-	InviteUserRequest struct {
-		// User is email or id of user.
-		User string `json:"user"`
-		// Limit is limit of usages of invite link.
-		Limit int `json:"limit"`
+	CreateInviteRequest struct {
+		Group   uuid.UUID `json:"group" example:"00000000-0000-0000-0000-000000000000"`
+		Limit   int       `json:"limit" example:"2"`
+		Member  int       `json:"members-permission" example:"4"`
+		Task    int       `json:"tasks-permission" example:"4"`
+		Review  int       `json:"reviews-permission" example:"4"`
+		Comment int       `json:"comments-permission" example:"4"`
 	}
-	InviteUserResponse struct {
+	CreateInviteResponse struct {
+		Link  string `json:"invite-link" example:"http://localhost:8080/api/v1/groups/00000000-0000-0000-0000-000000000000/apply?invite=00000000-0000-0000-0000-000000000000"`
+		Limit int    `json:"limit" example:"2"`
+	}
+	CreateInviteViaGroupRequest struct {
+		Limit   int `json:"limit" example:"2"`
+		Member  int `json:"members-permission" example:"4"`
+		Task    int `json:"tasks-permission" example:"4"`
+		Review  int `json:"reviews-permission" example:"4"`
+		Comment int `json:"comments-permission" example:"4"`
 	}
 )

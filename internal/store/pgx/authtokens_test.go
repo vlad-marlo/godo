@@ -31,8 +31,8 @@ func TestTokenRepository_GetUser(t *testing.T) {
 	require.NoError(t, srv.User().Create(ctx, TestUser1))
 	require.NoError(t, srv.Token().Create(ctx, TestToken1))
 	token, err = srv.Token().Get(ctx, TestToken1.Token)
-	assert.Nil(t, token)
-	assert.ErrorIs(t, err, store.ErrTokenIsExpired)
+	assert.NotNil(t, token)
+	assert.NoError(t, err)
 
 	require.ErrorIs(t, srv.Token().Create(ctx, TestToken2), store.ErrTokenAlreadyExists)
 

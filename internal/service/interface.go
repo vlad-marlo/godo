@@ -18,4 +18,16 @@ type Interface interface {
 	GetUserFromToken(ctx context.Context, t string) (uuid.UUID, error)
 	// CreateGroup create new group.
 	CreateGroup(ctx context.Context, user uuid.UUID, name, description string) (*model.CreateGroupResponse, error)
+	// CreateInvite creates invite link on which user will insert into group.
+	CreateInvite(ctx context.Context, user uuid.UUID, group uuid.UUID, role *model.Role, limit int) (*model.CreateInviteResponse, error)
+	// UseInvite applies use to group if invite data is ok.
+	UseInvite(ctx context.Context, user uuid.UUID, group uuid.UUID, invite uuid.UUID) error
+	// GetMe ...
+	GetMe(ctx context.Context, user uuid.UUID) (*model.GetMeResponse, error)
+	// GetUserTasks return all tasks, related to user.
+	GetUserTasks(ctx context.Context, user uuid.UUID) (*model.GetTasksResponse, error)
+	// GetTask return task by id if user is related to it.
+	GetTask(ctx context.Context, user, task uuid.UUID) (*model.Task, error)
+	// CreateTask ...
+	CreateTask(ctx context.Context, user uuid.UUID, task model.TaskCreateRequest) (*model.Task, error)
 }

@@ -10,6 +10,7 @@ import (
 )
 
 // Service ...
+// TODO:decompose logic as in storage - user, group, ...
 type Service struct {
 	store store.Store
 	cfg   *config.Config

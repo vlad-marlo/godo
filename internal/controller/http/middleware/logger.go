@@ -3,6 +3,7 @@ package middleware
 import (
 	"fmt"
 	"net/http"
+	"runtime/debug"
 	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
@@ -10,32 +11,49 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-type loggingRW struct {
+type responseWriter struct {
 	http.ResponseWriter
-	statusCode int
+	statusCode  int
+	wroteHeader bool
 }
 
 // newLoggingRW ...
-func newLoggingRW(w http.ResponseWriter) *loggingRW {
-	return &loggingRW{w, http.StatusOK}
+func newLoggingRW(w http.ResponseWriter) *responseWriter {
+	return &responseWriter{ResponseWriter: w}
+}
+
+func (l *responseWriter) Status() int {
+	return l.statusCode
 }
 
 // WriteHeader changing internal field and writes code to header.
-func (l *loggingRW) WriteHeader(code int) {
-	l.statusCode = code
-	l.ResponseWriter.WriteHeader(code)
+func (l *responseWriter) WriteHeader(statusCode int) {
+	if l.wroteHeader {
+		return
+	}
+	l.statusCode = statusCode
+	l.ResponseWriter.WriteHeader(statusCode)
+	l.wroteHeader = true
 }
 
 // LogRequest return middleware function that will log meta info about every request to logger used in initializing mw.
 func LogRequest(logger *zap.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 			id := middleware.GetReqID(r.Context())
 			lrw := newLoggingRW(w)
 
+			defer func() {
+				if rcv := recover(); rcv != nil {
+					lrw.WriteHeader(http.StatusInternalServerError)
+					logger.Error("recovered panic", zap.Any("recovered", rcv), zap.ByteString("debug stack", debug.Stack()))
+				}
+			}()
+
 			// start check time
 			start := time.Now()
-			next.ServeHTTP(lrw, r)
+			next.ServeHTTP(w, r)
 			dur := time.Since(start)
 
 			var level zapcore.Level
@@ -43,7 +61,7 @@ func LogRequest(logger *zap.Logger) func(next http.Handler) http.Handler {
 			case lrw.statusCode >= 500:
 				level = zap.ErrorLevel
 			case lrw.statusCode >= 400:
-				level = zap.DebugLevel
+				level = zap.InfoLevel
 			default:
 				level = zap.DebugLevel
 			}

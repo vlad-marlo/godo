@@ -39,9 +39,20 @@ type Service interface {
 	GetUserFromToken(ctx context.Context, t string) (uuid.UUID, error)
 	// CreateGroup create new group.
 	CreateGroup(ctx context.Context, user uuid.UUID, name, description string) (*model.CreateGroupResponse, error)
+	// CreateInvite creates invite link.
+	CreateInvite(ctx context.Context, user, group uuid.UUID, role *model.Role, limit int) (*model.CreateInviteResponse, error)
+	// UseInvite add user to group if invite is ok.
+	UseInvite(ctx context.Context, user, group, invite uuid.UUID) error
+	// GetMe return user's info
+	GetMe(ctx context.Context, user uuid.UUID) (*model.GetMeResponse, error)
+	// GetUserTasks return all tasks that are related to user.
+	GetUserTasks(ctx context.Context, user uuid.UUID) (*model.GetTasksResponse, error)
+	// GetTask return task if user related to task and task exists.
+	GetTask(ctx context.Context, user, task uuid.UUID) (*model.Task, error)
+	CreateTask(ctx context.Context, user uuid.UUID, task model.TaskCreateRequest) (*model.Task, error)
 }
 
-// Server is idk just do it.
+// Server ...
 type Server struct {
 	*chi.Mux
 	cfg     *config.Config
@@ -151,23 +162,32 @@ func (s *Server) configureMW() {
 
 // configureRoutes ...
 func (s *Server) configureRoutes() {
-	var prefix string
-	if s.cfg.HTTPS.KeyFile == "" || s.cfg.HTTPS.CertFile == "" || len(s.cfg.HTTPS.AllowedHosts) == 0 {
-		prefix = "http"
-	} else {
-		prefix = "https"
-	}
+	authChecker := mw.AuthChecker(s.srv)
 
 	s.Get("/swagger/*", httpSwagger.Handler(
-		httpSwagger.URL(fmt.Sprintf("%s://%s:%d/docs/doc.json", prefix, s.cfg.Server.Addr, s.cfg.Server.Port)),
+		httpSwagger.URL(fmt.Sprintf("%s/swagger/doc.json", s.cfg.Server.BaseURL)),
 	))
 	s.Route("/api/v1", func(r chi.Router) {
 		r.HandleFunc("/ping", s.Ping)
 		r.Route("/users", func(r chi.Router) {
 			r.Post("/register", s.RegisterUser)
 			r.Post("/token", s.CreateToken)
+			r.With(authChecker).Get("/me", s.UserMe)
 		})
-		r.With(mw.AuthChecker(s.srv))
+		r.With(authChecker).Group(func(r chi.Router) {
+			r.Route("/groups", func(r chi.Router) {
+				r.Post("/", s.CreateGroup)
+				r.Post("/{group_id}/invite", s.CreateInviteViaGroup)
+				r.Get("/{group_id}/apply", s.UseInvite)
+			})
+			r.Route("/tasks", func(r chi.Router) {
+				r.Get("/", s.AllTasks)
+				r.Get("/{task_id}", s.GetTask)
+			})
+			r.Route("/invites", func(r chi.Router) {
+				r.Post("/", s.CreateInviteLink)
+			})
+		})
 	})
 }
 

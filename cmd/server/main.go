@@ -24,11 +24,12 @@ import (
 //	@contact.name	API Support
 
 //	@host		localhost:8080
+//	@schemes	http https
 //	@BasePath	/api/v1
 
 //	@securityDefinitions.basic	BasicAuth on
 
-// @externalDocs.description	OpenAPI
+//	@externalDocs.description	OpenAPI
 func main() {
 	fx.New(CreateApp()).Run()
 }
@@ -57,9 +58,10 @@ func CreateApp() fx.Option {
 			pgx.NewUserRepository,
 			pgx.NewTokenRepository,
 			pgx.NewTaskRepository,
+			pgx.NewInviteRepository,
 			httpctrl.New,
 		),
-		fx.WithLogger(ZapEventLogger),
+		//fx.WithLogger(ZapEventLogger),
 		fx.Invoke(
 			CreateLogger,
 			ValidateConfig,
@@ -80,8 +82,8 @@ func CreateLogger() error {
 	return nil
 }
 
-// ZapEventLogger return new event logger for fx application.
-func ZapEventLogger(logger *zap.Logger) fxevent.Logger {
+// _ return new event logger for fx application.
+func _(logger *zap.Logger) fxevent.Logger {
 	return &fxevent.ZapLogger{Logger: logger}
 }
 

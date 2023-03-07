@@ -9,6 +9,8 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	uuid "github.com/google/uuid"
+	model "github.com/vlad-marlo/godo/internal/model"
 )
 
 // MockService is a mock of Service interface.
@@ -34,6 +36,66 @@ func (m *MockService) EXPECT() *MockServiceMockRecorder {
 	return m.recorder
 }
 
+// CreateGroup mocks base method.
+func (m *MockService) CreateGroup(ctx context.Context, user uuid.UUID, name, description string) (*model.CreateGroupResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateGroup", ctx, user, name, description)
+	ret0, _ := ret[0].(*model.CreateGroupResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateGroup indicates an expected call of CreateGroup.
+func (mr *MockServiceMockRecorder) CreateGroup(ctx, user, name, description interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateGroup", reflect.TypeOf((*MockService)(nil).CreateGroup), ctx, user, name, description)
+}
+
+// CreateInvite mocks base method.
+func (m *MockService) CreateInvite(ctx context.Context, user, group uuid.UUID, role *model.Role, limit int) (*model.CreateInviteResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateInvite", ctx, user, group, role, limit)
+	ret0, _ := ret[0].(*model.CreateInviteResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateInvite indicates an expected call of CreateInvite.
+func (mr *MockServiceMockRecorder) CreateInvite(ctx, user, group, role, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInvite", reflect.TypeOf((*MockService)(nil).CreateInvite), ctx, user, group, role, limit)
+}
+
+// CreateToken mocks base method.
+func (m *MockService) CreateToken(ctx context.Context, email, password, token string) (*model.CreateTokenResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateToken", ctx, email, password, token)
+	ret0, _ := ret[0].(*model.CreateTokenResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateToken indicates an expected call of CreateToken.
+func (mr *MockServiceMockRecorder) CreateToken(ctx, email, password, token interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateToken", reflect.TypeOf((*MockService)(nil).CreateToken), ctx, email, password, token)
+}
+
+// GetUserFromToken mocks base method.
+func (m *MockService) GetUserFromToken(ctx context.Context, t string) (uuid.UUID, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserFromToken", ctx, t)
+	ret0, _ := ret[0].(uuid.UUID)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserFromToken indicates an expected call of GetUserFromToken.
+func (mr *MockServiceMockRecorder) GetUserFromToken(ctx, t interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserFromToken", reflect.TypeOf((*MockService)(nil).GetUserFromToken), ctx, t)
+}
+
 // Ping mocks base method.
 func (m *MockService) Ping(ctx context.Context) error {
 	m.ctrl.T.Helper()
@@ -46,4 +108,33 @@ func (m *MockService) Ping(ctx context.Context) error {
 func (mr *MockServiceMockRecorder) Ping(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ping", reflect.TypeOf((*MockService)(nil).Ping), ctx)
+}
+
+// RegisterUser mocks base method.
+func (m *MockService) RegisterUser(ctx context.Context, email, password string) (*model.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RegisterUser", ctx, email, password)
+	ret0, _ := ret[0].(*model.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RegisterUser indicates an expected call of RegisterUser.
+func (mr *MockServiceMockRecorder) RegisterUser(ctx, email, password interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterUser", reflect.TypeOf((*MockService)(nil).RegisterUser), ctx, email, password)
+}
+
+// UseInvite mocks base method.
+func (m *MockService) UseInvite(ctx context.Context, user, group, invite uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UseInvite", ctx, user, group, invite)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UseInvite indicates an expected call of UseInvite.
+func (mr *MockServiceMockRecorder) UseInvite(ctx, user, group, invite interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UseInvite", reflect.TypeOf((*MockService)(nil).UseInvite), ctx, user, group, invite)
 }

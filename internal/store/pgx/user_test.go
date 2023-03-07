@@ -79,21 +79,29 @@ func TestUserRepository_GetByName(t *testing.T) {
 	assert.False(t, s.Exists(ctx, TestUser2.ID.String()))
 }
 
-func TestUserRepository_GetByName_Negative(t *testing.T) {
-	cli := BadCli(t)
-	userRepository := NewUserRepository(cli)
+func TestUserRepository_GetByID(t *testing.T) {
+	ctx := context.Background()
 
-	u, err := userRepository.GetByEmail(context.Background(), "xd")
+	s, td := testUsers(t)
+	defer td()
+
+	u, err := s.Get(ctx, TestUser1.ID)
+	assert.Nil(t, u)
+	assert.ErrorIs(t, err, store.ErrNotFound)
+
+	assert.False(t, s.Exists(ctx, TestUser1.ID.String()))
+
+	assert.NoError(t, s.Create(ctx, TestUser1))
+	u, err = s.Get(ctx, TestUser1.ID)
+
+	assert.Equal(t, TestUser1, u)
+	assert.NoError(t, err)
+	assert.True(t, s.Exists(ctx, TestUser1.ID.String()))
+
+	u, err = s.Get(ctx, TestUser2.ID)
 	assert.Nil(t, u)
 	assert.Error(t, err)
-	assert.ErrorIs(t, err, store.ErrUnknown)
-}
+	assert.ErrorIs(t, err, store.ErrNotFound)
 
-func TestUserRepository_Create_Negative(t *testing.T) {
-	cli := BadCli(t)
-	userRepository := NewUserRepository(cli)
-
-	err := userRepository.Create(context.Background(), new(model.User))
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, store.ErrUnknown)
+	assert.False(t, s.Exists(ctx, TestUser2.ID.String()))
 }

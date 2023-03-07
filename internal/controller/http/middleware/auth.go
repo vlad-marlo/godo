@@ -8,12 +8,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/vlad-marlo/godo/internal/pkg/fielderr"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"net/http"
-	"strings"
 )
 
 // Service provide getting user from token.
 type Service interface {
+	// GetUserFromToken return id of user, who claim provided token.
 	GetUserFromToken(ctx context.Context, t string) (uuid.UUID, error)
 }
 
@@ -27,40 +28,19 @@ type userInCtxKey struct{}
 func AuthChecker(srv Service) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			zap.L().Info("header", zap.Any("header", r.Header))
 			token := r.Header.Get("authorization")
 			reqID := middleware.GetReqID(r.Context())
-
-			if !strings.Contains("Bearer ", token) && !strings.Contains("Authorization ", token) {
-				w.WriteHeader(http.StatusUnauthorized)
-
-				_, err := w.Write([]byte(http.StatusText(http.StatusUnauthorized)))
-				if err != nil {
-					zap.L().Error("http: ResponseWriter: Write", zap.Error(err), zap.String(reqIDField, reqID))
-				}
-
-				return
-			}
 
 			u, err := srv.GetUserFromToken(r.Context(), token)
 			if err != nil {
 
 				if fErr, ok := err.(*fielderr.Error); ok {
-					zap.L().Debug("get user from token", append(fErr.Fields(), zap.Error(err), zap.String(reqIDField, reqID))...)
-					if err = json.NewEncoder(w).Encode(fErr.Data()); err != nil {
-						zap.L().Error("encode data", zap.Error(err))
-					}
+					respond(w, fErr.CodeHTTP(), fErr.Data(), append(fErr.Fields(), zap.Error(err), zap.String(reqIDField, reqID))...)
 					return
 				}
 
-				zap.L().Debug("get user from token", zap.Error(err), zap.String(reqIDField, reqID))
-
-				w.WriteHeader(http.StatusUnauthorized)
-
-				_, err = w.Write([]byte(http.StatusText(http.StatusUnauthorized)))
-				if err != nil {
-					zap.L().Error("http: ResponseWriter: Write", zap.Error(err), zap.String(reqIDField, reqID))
-				}
-
+				respond(w, http.StatusInternalServerError, nil, zap.Error(err), zap.String(reqIDField, reqID))
 				return
 			}
 
@@ -69,6 +49,36 @@ func AuthChecker(srv Service) func(next http.Handler) http.Handler {
 	}
 }
 
+// respond helper function to write response to user.
+func respond(w http.ResponseWriter, code int, data interface{}, fields ...zap.Field) {
+	var lvl zapcore.Level
+	switch {
+	case code >= 500:
+		lvl = zap.DPanicLevel
+	case code >= 400:
+		lvl = zap.ErrorLevel
+	default:
+		lvl = zap.DebugLevel
+	}
+
+	w.Header().Set("content-type", "application/json")
+
+	if data == nil {
+		data = http.StatusText(code)
+	}
+
+	w.WriteHeader(code)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		fields = append(fields, zap.Error(err))
+	}
+
+	if len(fields) > 0 {
+		zap.L().Log(lvl, "respond", fields...)
+	}
+}
+
+// WithUser adds user to request's context.
+// To get user id from request use UserFromContext.
 func WithUser(r *http.Request, u uuid.UUID) *http.Request {
 	return r.WithContext(context.WithValue(r.Context(), userInCtxKey{}, u))
 }

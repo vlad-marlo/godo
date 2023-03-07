@@ -59,13 +59,12 @@ var (
 		},
 		fielderr.CodeUnauthorized,
 	)
-	ErrBadUser = fielderr.New(
-		"bad user id",
+	ErrForbidden = fielderr.New(
+		"user has no permission",
 		map[string]string{
-			"user": "check auth credentials",
+			"error": "you have no permission to do",
 		},
-		fielderr.CodeUnauthorized,
-	)
+		fielderr.CodeForbidden)
 	ErrGroupAlreadyExists = fielderr.New(
 		"group already exists",
 		map[string]string{
@@ -73,4 +72,28 @@ var (
 		},
 		fielderr.CodeConflict,
 	)
+	ErrConflict           = fielderr.New("conflict", nil, fielderr.CodeConflict)
+	ErrBadData            = fielderr.New("bad data", nil, fielderr.CodeBadRequest)
+	ErrBadAuthCredentials = fielderr.New("bad auth credentials", nil, fielderr.CodeUnauthorized)
+	ErrNotFound           = fielderr.New("not found", nil, fielderr.CodeNotFound)
+	ErrBadInvite          = fielderr.New(
+		"invite does not exists",
+		map[string]string{
+			"invite": "is not available",
+		},
+		fielderr.CodeNotFound,
+	)
+	ErrAlreadyInGroup = fielderr.New(
+		"user already in group",
+		map[string]string{
+			"invite": "you are already in group",
+		},
+		fielderr.CodeConflict,
+	)
+	ErrUserNotFound = fielderr.New("user not found", map[string]string{
+		"user": "not found",
+	}, fielderr.CodeNotFound)
+	ErrBadInviteLimit = fielderr.New("bad limit", map[string]string{
+		"limit": "limit must be not null positive integer number",
+	}, fielderr.CodeBadRequest)
 )

@@ -52,7 +52,7 @@ func TestError_CodeHTTP(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, (&Error{code: 123}).CodeHTTP())
 }
 
-func TestErrorAs(t *testing.T) {
+func TestErrorIs(t *testing.T) {
 	msg := "msg"
 	data := map[string]any{
 		"xd":  nil,
@@ -61,9 +61,9 @@ func TestErrorAs(t *testing.T) {
 	code := CodeInternal
 
 	err := New(msg, data, code)
-	newErr := err.With(zap.String("string", "sdf"))
-	assert.ErrorIs(t, newErr, err)
-	assert.NotEqual(t, err, newErr)
+	newErr := err.With(zap.String("string", "sdf"), zap.Error(nil))
+	assert.ErrorIs(t, error(newErr), error(err))
+	assert.NotEqual(t, error(err), error(newErr))
 }
 
 func TestError_Fields(t *testing.T) {

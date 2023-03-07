@@ -35,8 +35,11 @@ type (
 		// CreatedAt is creation time in UNIX format
 		CreatedAt int64 `json:"created-at"`
 	}
-	InviteUserInGroupResponse struct {
-		Link  string
-		Limit int
+	// GroupInUser is short info about group
+	GroupInUser struct {
+		ID          uuid.UUID `json:"id"`
+		Name        string    `json:"name"`
+		Description string    `json:"description"`
+		Tasks       []*Task   `json:"tasks,omitempty"`
 	}
 )

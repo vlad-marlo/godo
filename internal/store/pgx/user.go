@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -88,50 +89,23 @@ func (repo *UserRepository) GetByEmail(
 			return nil, store.ErrNotFound
 		}
 
-		repo.log.Debug("unknown error while getting user", TraceError(err)...)
+		repo.log.Debug("unknown error while getting user by email", TraceError(err)...)
 		return nil, store.ErrUnknown
 	}
 
 	return u, nil
 }
 
-// GetGroups return slice of all user's groups.
-func (repo *UserRepository) GetGroups(ctx context.Context, user string) (res []*model.Group, err error) {
-	q := `SELECT g.id, g.name, g.description, g.created_at
-FROM groups g
-         INNER JOIN user_in_group uig on g.id = uig.group_id
-WHERE uig.user_id = $1;`
-
-	var rows pgx.Rows
-
-	rows, err = repo.pool.Query(ctx, q, user)
-	if err != nil {
-
+// Get return user by id
+func (repo *UserRepository) Get(ctx context.Context, id uuid.UUID) (u *model.User, err error) {
+	u = new(model.User)
+	if err = repo.pool.QueryRow(ctx, `SELECT x.id, x.email, x.pass FROM users x WHERE x.id = $1 `, id).Scan(&u.ID, &u.Email, &u.Pass); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, store.ErrNotFound
 		}
 
-		repo.log.Error("get all user's groups", TraceError(err)...)
+		repo.log.Debug("unknown error while getting user by id", TraceError(err)...)
 		return nil, Unknown(err)
 	}
-
-	defer rows.Close()
-
-	for rows.Next() {
-		g := new(model.Group)
-
-		if err = rows.Scan(&g.ID, &g.Name, &g.Description, &g.CreatedAt); err != nil {
-			repo.log.Error("scan group", TraceError(err)...)
-			return nil, Unknown(err)
-		}
-
-		res = append(res, g)
-	}
-
-	if err = rows.Err(); err != nil {
-		repo.log.Error("unexpected error got from rows.Err()", TraceError(err)...)
-		return nil, Unknown(err)
-	}
-
-	return res, nil
+	return u, nil
 }

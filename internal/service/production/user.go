@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/vlad-marlo/godo/internal/model"
 	"github.com/vlad-marlo/godo/internal/service"
@@ -17,8 +16,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"net/mail"
-	"strings"
-	"time"
 )
 
 const (
@@ -69,133 +66,43 @@ func (s *Service) RegisterUser(ctx context.Context, email, password string) (*mo
 	return u, nil
 }
 
-// checkUserCredentials check auth data for user. Method return pointer to user and error.
-// If where is user with email and password this method will return no error and current user object.
-// Any else, service will return field error with correct data.
-func (s *Service) checkUserCredentials(ctx context.Context, email, password string) (*model.User, error) {
-	u, err := s.store.User().GetByEmail(ctx, email)
+// CreateInvite ...
+func (s *Service) CreateInvite(ctx context.Context, user uuid.UUID, group uuid.UUID, role *model.Role, limit int) (*model.CreateInviteResponse, error) {
+	if limit <= 0 {
+		return nil, service.ErrBadInviteLimit
+	}
+	userRole, err := s.store.Group().GetRoleOfMember(ctx, user, group)
 	if err != nil {
-		s.log.Error("get user by name", zap.Error(err))
 		if errors.Is(err, store.ErrNotFound) {
-			return nil, service.ErrBadAuthData.With(zap.Error(err))
+			return nil, service.ErrForbidden
 		}
 		return nil, service.ErrInternal.With(zap.Error(err))
 	}
-	if bcrypt.CompareHashAndPassword([]byte(u.Pass), []byte(s.cfg.Server.Salt+password)) != nil {
-		return nil, service.ErrBadAuthData
-	}
-	return u, nil
-}
 
-// CreateToken ...
-func (s *Service) CreateToken(ctx context.Context, email, password, token string) (*model.CreateTokenResponse, error) {
-	u, err := s.checkUserCredentials(ctx, email, password)
-	if err != nil {
-		return nil, err
+	if userRole.Members < 2 {
+		return nil, service.ErrForbidden
 	}
 
-	switch strings.ToLower(token) {
-	case BearerToken, JWTToken:
-		return s.createJWTToken(u)
-	case AuthToken, AuthorizationToken:
-		return s.createAuthToken(ctx, u)
-	}
-	return nil, service.ErrBadTokenType.With(zap.String("token_type", token))
-}
+	invite := uuid.New()
 
-// jwtKeyFunc is helper func to get token encrypt key.
-func (s *Service) jwtKeyFunc(*jwt.Token) (interface{}, error) {
-	return []byte(s.cfg.Server.SecretKey), nil
-}
+	if err = s.store.Invite().Create(ctx, invite, role, group, limit); err != nil {
 
-// GetUserFromToken parses jwt token from raw token string.
-func (s *Service) GetUserFromToken(ctx context.Context, t string) (uuid.UUID, error) {
-	if strings.HasPrefix(t, "Bearer ") {
-		return s.getUserFromJWTToken(ctx, t)
-	}
-	if strings.HasPrefix(t, "Authorization ") {
-		return s.getUserFromAuthToken(ctx, t)
-	}
-	return uuid.Nil, service.ErrBadAuthData
-}
+		switch errors.Unwrap(err) {
 
-// getUserFromAuthToken ...
-func (s *Service) getUserFromAuthToken(ctx context.Context, t string) (uuid.UUID, error) {
-	t = strings.TrimPrefix(t, "Authorization ")
-	u, err := s.store.Token().Get(ctx, t)
-	if err != nil {
-		return uuid.Nil, service.ErrTokenNotValid.With(zap.Error(err))
-	}
-	return u.UserID, nil
-}
+		case store.ErrUniqueViolation:
+			return nil, service.ErrConflict
 
-// getUserFromJWTToken ...
-func (s *Service) getUserFromJWTToken(ctx context.Context, t string) (uuid.UUID, error) {
-	t = strings.TrimPrefix(t, "Bearer ")
-	token, err := jwt.ParseWithClaims(t, &jwt.RegisteredClaims{}, s.jwtKeyFunc)
-	if err != nil {
-		return uuid.Nil, service.ErrInternal.With(zap.Error(fmt.Errorf("parse jwt: %w", err)))
-	}
+		case store.ErrFKViolation:
+			return nil, service.ErrBadData
 
-	if !token.Valid {
-		return uuid.Nil, service.ErrTokenNotValid
+		default:
+			return nil, service.ErrInternal.With(zap.Error(err))
+		}
 	}
-
-	claims, ok := token.Claims.(*jwt.RegisteredClaims)
-	if !ok {
-		return uuid.Nil, service.ErrTokenNotValid
-	}
-
-	var u uuid.UUID
-	u, err = uuid.Parse(claims.Subject)
-	if !s.store.User().Exists(ctx, u.String()) {
-		return uuid.Nil, service.ErrTokenNotValid
-	}
-	return u, nil
-}
-
-// createJWTToken creates jwt token for user.
-func (s *Service) createJWTToken(u *model.User) (*model.CreateTokenResponse, error) {
-	t := time.Now()
-	at := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
-		Subject:   u.ID.String(),
-		Audience:  []string{"access_token"},
-		ExpiresAt: jwt.NewNumericDate(t.Add(s.cfg.Auth.AccessTokenLifeTime)),
-		NotBefore: jwt.NewNumericDate(t),
-		IssuedAt:  jwt.NewNumericDate(t),
-		ID:        uuid.NewString(),
-	})
-
-	token, err := at.SignedString([]byte(s.cfg.Server.SecretKey))
-	if err != nil {
-		return nil, service.ErrInternal.With(zap.Error(fmt.Errorf("create jwt token: signed string: %w", err)))
-	}
-
-	return &model.CreateTokenResponse{
-		TokenType:   BearerToken,
-		AccessToken: token,
-	}, nil
-}
-
-// createAuthToken create authorization token for user.
-func (s *Service) createAuthToken(ctx context.Context, u *model.User) (*model.CreateTokenResponse, error) {
-	now := time.Now()
-	token, err := generateRandom(s.cfg.Auth.AuthTokenSize)
-	if err != nil {
-		return nil, service.ErrInternal.With(zap.Error(err), zap.String("summary", "error while generating auth token"))
-	}
-	t := &model.Token{
-		UserID:    u.ID,
-		Token:     token,
-		ExpiresAt: now.Add(s.cfg.Auth.AccessTokenLifeTime),
-		Expires:   false,
-	}
-	if err := s.store.Token().Create(ctx, t); err != nil {
-		return nil, service.ErrInternal.With(zap.Error(err))
-	}
-	return &model.CreateTokenResponse{
-		TokenType:   AuthorizationToken,
-		AccessToken: t.Token,
+	return &model.CreateInviteResponse{
+		// invite link template
+		Link:  fmt.Sprintf(s.cfg.Server.InviteLinkTemplate, s.cfg.Server.BaseURL, group, invite),
+		Limit: limit,
 	}, nil
 }
 
@@ -206,4 +113,58 @@ func generateRandom(size int) (string, error) {
 		return "", err
 	}
 	return base64.StdEncoding.EncodeToString(b), nil
+}
+
+// GetMe ...
+func (s *Service) GetMe(ctx context.Context, user uuid.UUID) (*model.GetMeResponse, error) {
+	u, err := s.store.User().Get(ctx, user)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrNotFound):
+			return nil, service.ErrUserNotFound
+		case errors.Is(err, store.ErrUnknown):
+			return nil, service.ErrInternal.With(zap.Error(err))
+		default:
+		}
+		return nil, service.ErrInternal.With(zap.Error(err))
+	}
+
+	res := &model.GetMeResponse{
+		ID:     user,
+		Email:  u.Email,
+		Groups: []model.GroupInUser{},
+	}
+
+	var groups []*model.Group
+	groups, err = s.store.Group().GetByUser(ctx, user)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrNotFound):
+			return nil, service.ErrNotFound
+		default:
+		}
+		return nil, service.ErrInternal.With(zap.Error(err))
+	}
+
+	for _, group := range groups {
+		var tasks []*model.Task
+
+		tasks, err = s.store.Task().AllByGroupAndUser(ctx, group.ID, user)
+		if err != nil {
+			if errors.Is(err, store.ErrNotFound) {
+				return nil, service.ErrNotFound
+			}
+			return nil, service.ErrInternal.With(zap.Error(err))
+		}
+
+		res.Groups = append(res.Groups, model.GroupInUser{
+			ID:          group.ID,
+			Name:        group.Name,
+			Description: group.Description,
+			Tasks:       tasks,
+		})
+
+	}
+
+	return res, nil
 }

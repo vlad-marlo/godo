@@ -9,6 +9,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	uuid "github.com/google/uuid"
 	model "github.com/vlad-marlo/godo/internal/model"
 	store "github.com/vlad-marlo/godo/internal/store"
 )
@@ -64,6 +65,21 @@ func (mr *MockUserRepositoryMockRecorder) Exists(ctx, id interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockUserRepository)(nil).Exists), ctx, id)
 }
 
+// Get mocks base method.
+func (m *MockUserRepository) Get(ctx context.Context, id uuid.UUID) (*model.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Get", ctx, id)
+	ret0, _ := ret[0].(*model.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Get indicates an expected call of Get.
+func (mr *MockUserRepositoryMockRecorder) Get(ctx, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockUserRepository)(nil).Get), ctx, id)
+}
+
 // GetByEmail mocks base method.
 func (m *MockUserRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
 	m.ctrl.T.Helper()
@@ -116,20 +132,6 @@ func (mr *MockGroupRepositoryMockRecorder) AddTask(ctx, task, group interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddTask", reflect.TypeOf((*MockGroupRepository)(nil).AddTask), ctx, task, group)
 }
 
-// AddUser mocks base method.
-func (m *MockGroupRepository) AddUser(ctx context.Context, invite, user string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddUser", ctx, invite, user)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AddUser indicates an expected call of AddUser.
-func (mr *MockGroupRepositoryMockRecorder) AddUser(ctx, invite, user interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddUser", reflect.TypeOf((*MockGroupRepository)(nil).AddUser), ctx, invite, user)
-}
-
 // Create mocks base method.
 func (m *MockGroupRepository) Create(ctx context.Context, group *model.Group) error {
 	m.ctrl.T.Helper()
@@ -144,18 +146,48 @@ func (mr *MockGroupRepositoryMockRecorder) Create(ctx, group interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockGroupRepository)(nil).Create), ctx, group)
 }
 
-// Exists mocks base method.
-func (m *MockGroupRepository) Exists(ctx context.Context, id string) bool {
+// GetByUser mocks base method.
+func (m *MockGroupRepository) GetByUser(ctx context.Context, user uuid.UUID) ([]*model.Group, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Exists", ctx, id)
+	ret := m.ctrl.Call(m, "GetByUser", ctx, user)
+	ret0, _ := ret[0].([]*model.Group)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetByUser indicates an expected call of GetByUser.
+func (mr *MockGroupRepositoryMockRecorder) GetByUser(ctx, user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByUser", reflect.TypeOf((*MockGroupRepository)(nil).GetByUser), ctx, user)
+}
+
+// GetRoleOfMember mocks base method.
+func (m *MockGroupRepository) GetRoleOfMember(ctx context.Context, user, group uuid.UUID) (*model.Role, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRoleOfMember", ctx, user, group)
+	ret0, _ := ret[0].(*model.Role)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRoleOfMember indicates an expected call of GetRoleOfMember.
+func (mr *MockGroupRepositoryMockRecorder) GetRoleOfMember(ctx, user, group interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRoleOfMember", reflect.TypeOf((*MockGroupRepository)(nil).GetRoleOfMember), ctx, user, group)
+}
+
+// UserExists mocks base method.
+func (m *MockGroupRepository) UserExists(ctx context.Context, group, user string) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UserExists", ctx, group, user)
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
-// Exists indicates an expected call of Exists.
-func (mr *MockGroupRepositoryMockRecorder) Exists(ctx, id interface{}) *gomock.Call {
+// UserExists indicates an expected call of UserExists.
+func (mr *MockGroupRepositoryMockRecorder) UserExists(ctx, group, user interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockGroupRepository)(nil).Exists), ctx, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UserExists", reflect.TypeOf((*MockGroupRepository)(nil).UserExists), ctx, group, user)
 }
 
 // MockTokenRepository is a mock of TokenRepository interface.
@@ -210,6 +242,71 @@ func (mr *MockTokenRepositoryMockRecorder) Get(ctx, token interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockTokenRepository)(nil).Get), ctx, token)
 }
 
+// MockInviteRepository is a mock of InviteRepository interface.
+type MockInviteRepository struct {
+	ctrl     *gomock.Controller
+	recorder *MockInviteRepositoryMockRecorder
+}
+
+// MockInviteRepositoryMockRecorder is the mock recorder for MockInviteRepository.
+type MockInviteRepositoryMockRecorder struct {
+	mock *MockInviteRepository
+}
+
+// NewMockInviteRepository creates a new mock instance.
+func NewMockInviteRepository(ctrl *gomock.Controller) *MockInviteRepository {
+	mock := &MockInviteRepository{ctrl: ctrl}
+	mock.recorder = &MockInviteRepositoryMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockInviteRepository) EXPECT() *MockInviteRepositoryMockRecorder {
+	return m.recorder
+}
+
+// Create mocks base method.
+func (m *MockInviteRepository) Create(ctx context.Context, invite uuid.UUID, r *model.Role, group uuid.UUID, uses int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Create", ctx, invite, r, group, uses)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Create indicates an expected call of Create.
+func (mr *MockInviteRepositoryMockRecorder) Create(ctx, invite, r, group, uses interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockInviteRepository)(nil).Create), ctx, invite, r, group, uses)
+}
+
+// Exists mocks base method.
+func (m *MockInviteRepository) Exists(ctx context.Context, invite, group uuid.UUID) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Exists", ctx, invite, group)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// Exists indicates an expected call of Exists.
+func (mr *MockInviteRepositoryMockRecorder) Exists(ctx, invite, group interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockInviteRepository)(nil).Exists), ctx, invite, group)
+}
+
+// Use mocks base method.
+func (m *MockInviteRepository) Use(ctx context.Context, invite, user uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Use", ctx, invite, user)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Use indicates an expected call of Use.
+func (mr *MockInviteRepositoryMockRecorder) Use(ctx, invite, user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Use", reflect.TypeOf((*MockInviteRepository)(nil).Use), ctx, invite, user)
+}
+
 // MockTaskRepository is a mock of TaskRepository interface.
 type MockTaskRepository struct {
 	ctrl     *gomock.Controller
@@ -233,6 +330,64 @@ func (m *MockTaskRepository) EXPECT() *MockTaskRepositoryMockRecorder {
 	return m.recorder
 }
 
+// AddToGroup mocks base method.
+func (m *MockTaskRepository) AddToGroup(ctx context.Context, task, group uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddToGroup", ctx, task, group)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddToGroup indicates an expected call of AddToGroup.
+func (mr *MockTaskRepositoryMockRecorder) AddToGroup(ctx, task, group interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddToGroup", reflect.TypeOf((*MockTaskRepository)(nil).AddToGroup), ctx, task, group)
+}
+
+// AddToUser mocks base method.
+func (m *MockTaskRepository) AddToUser(ctx context.Context, from, task, to uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddToUser", ctx, from, task, to)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddToUser indicates an expected call of AddToUser.
+func (mr *MockTaskRepositoryMockRecorder) AddToUser(ctx, from, task, to interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddToUser", reflect.TypeOf((*MockTaskRepository)(nil).AddToUser), ctx, from, task, to)
+}
+
+// AllByGroupAndUser mocks base method.
+func (m *MockTaskRepository) AllByGroupAndUser(ctx context.Context, group, user uuid.UUID) ([]*model.Task, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AllByGroupAndUser", ctx, group, user)
+	ret0, _ := ret[0].([]*model.Task)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AllByGroupAndUser indicates an expected call of AllByGroupAndUser.
+func (mr *MockTaskRepositoryMockRecorder) AllByGroupAndUser(ctx, group, user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllByGroupAndUser", reflect.TypeOf((*MockTaskRepository)(nil).AllByGroupAndUser), ctx, group, user)
+}
+
+// AllByUser mocks base method.
+func (m *MockTaskRepository) AllByUser(ctx context.Context, user uuid.UUID) ([]*model.Task, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AllByUser", ctx, user)
+	ret0, _ := ret[0].([]*model.Task)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AllByUser indicates an expected call of AllByUser.
+func (mr *MockTaskRepositoryMockRecorder) AllByUser(ctx, user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllByUser", reflect.TypeOf((*MockTaskRepository)(nil).AllByUser), ctx, user)
+}
+
 // Create mocks base method.
 func (m *MockTaskRepository) Create(ctx context.Context, task *model.Task) error {
 	m.ctrl.T.Helper()
@@ -245,6 +400,21 @@ func (m *MockTaskRepository) Create(ctx context.Context, task *model.Task) error
 func (mr *MockTaskRepositoryMockRecorder) Create(ctx, task interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockTaskRepository)(nil).Create), ctx, task)
+}
+
+// GetByUserAndID mocks base method.
+func (m *MockTaskRepository) GetByUserAndID(ctx context.Context, user, task uuid.UUID) (*model.Task, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetByUserAndID", ctx, user, task)
+	ret0, _ := ret[0].(*model.Task)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetByUserAndID indicates an expected call of GetByUserAndID.
+func (mr *MockTaskRepositoryMockRecorder) GetByUserAndID(ctx, user, task interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByUserAndID", reflect.TypeOf((*MockTaskRepository)(nil).GetByUserAndID), ctx, user, task)
 }
 
 // MockStore is a mock of Store interface.
@@ -282,6 +452,20 @@ func (m *MockStore) Group() store.GroupRepository {
 func (mr *MockStoreMockRecorder) Group() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Group", reflect.TypeOf((*MockStore)(nil).Group))
+}
+
+// Invite mocks base method.
+func (m *MockStore) Invite() store.InviteRepository {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Invite")
+	ret0, _ := ret[0].(store.InviteRepository)
+	return ret0
+}
+
+// Invite indicates an expected call of Invite.
+func (mr *MockStoreMockRecorder) Invite() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Invite", reflect.TypeOf((*MockStore)(nil).Invite))
 }
 
 // Ping mocks base method.

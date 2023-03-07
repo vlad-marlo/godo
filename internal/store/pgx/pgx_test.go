@@ -2,6 +2,9 @@ package pgx
 
 import (
 	"context"
+	"github.com/google/uuid"
+	"github.com/vlad-marlo/godo/internal/model"
+	"github.com/vlad-marlo/godo/internal/store"
 	"log"
 	"os"
 	"testing"
@@ -30,17 +33,33 @@ func TestNew(t *testing.T) {
 
 func TestStore_User(t *testing.T) {
 	cli := postgres.TestClient(t)
-	u := NewUserRepository(cli)
-	g := NewGroupRepository(cli)
-	tr := NewTokenRepository(cli)
-	taskRepo := NewTaskRepository(cli)
-	s := New(cli, u, g, tr, taskRepo)
-	assert.Equal(t, u, s.User())
+	usrRepo := NewUserRepository(cli)
+	grpRepo := NewGroupRepository(cli)
+	tokRepo := NewTokenRepository(cli)
+	tskRepo := NewTaskRepository(cli)
+	invRepo := NewInviteRepository(cli)
+	s := New(
+		cli,
+		usrRepo,
+		grpRepo,
+		tokRepo,
+		tskRepo,
+		invRepo,
+	)
+	assert.Equal(t, usrRepo, s.User())
 	assert.Equal(t, s.user, s.User())
-	assert.Equal(t, g, s.Group())
-	assert.Equal(t, g, s.group)
-	assert.Equal(t, tr, s.token)
+
+	assert.Equal(t, grpRepo, s.Group())
+	assert.Equal(t, grpRepo, s.group)
+
+	assert.Equal(t, tokRepo, s.token)
 	assert.Equal(t, s.token, s.Token())
+
+	assert.Equal(t, tskRepo, s.Task())
+	assert.Equal(t, s.task, s.Task())
+
+	assert.Equal(t, s.invite, s.Invite())
+	assert.Equal(t, s.invite, invRepo)
 	s.Close()
 }
 
@@ -55,4 +74,47 @@ func TestMain(m *testing.M) {
 		log.Fatalf("os: setenv: %s", err.Error())
 	}
 	os.Exit(m.Run())
+}
+
+func TestBadCli(t *testing.T) {
+	st, _ := testStore(t, BadCli(t))
+	ctx := context.Background()
+
+	assert.False(t, st.user.Exists(ctx, "sd"))
+	group, err := st.group.Get(context.Background(), TestGroup1.ID)
+	assert.Nil(t, group)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, store.ErrUnknown)
+
+	err = st.group.Create(context.Background(), TestGroup1)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, store.ErrUnknown)
+
+	err = st.invite.Create(context.Background(), TestInvite1, TestRole1, TestGroup1.ID, 1)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, store.ErrUnknown)
+
+	require.False(t, st.invite.Exists(context.Background(), TestInvite1, TestGroup1.ID))
+
+	var u *model.User
+	u, err = st.user.GetByEmail(context.Background(), "xd")
+	assert.Nil(t, u)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, store.ErrUnknown)
+
+	u, err = st.user.Get(context.Background(), uuid.Nil)
+	assert.Nil(t, u)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, store.ErrUnknown)
+
+	err = st.user.Create(context.Background(), new(model.User))
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, store.ErrUnknown)
+
+	var token *model.Token
+	token, err = st.token.Get(ctx, TestToken1.Token)
+	assert.Nil(t, token)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, store.ErrUnknown)
+
 }
