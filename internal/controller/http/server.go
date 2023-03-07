@@ -219,7 +219,7 @@ func (s *Server) respond(w http.ResponseWriter, code int, data interface{}, fiel
 	}
 }
 
-// internal ...
+// internal is helper function to call respond with s.respond(w, http.StatusInternalServerError, nil, fields...)
 func (s *Server) internal(w http.ResponseWriter, fields ...zap.Field) {
 	s.respond(w, http.StatusInternalServerError, nil, fields...)
 }

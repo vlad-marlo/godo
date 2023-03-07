@@ -435,6 +435,7 @@ func (s *Server) GetTask(w http.ResponseWriter, r *http.Request) {
 	resp, err = s.srv.GetTask(r.Context(), u, g)
 	if err != nil {
 
+
 		if fErr, ok := err.(*fielderr.Error); ok {
 			s.respond(w, fErr.CodeHTTP(), fErr.Data(), append(fErr.Fields(), reqID)...)
 			return
