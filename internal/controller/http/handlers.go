@@ -162,6 +162,7 @@ func (s *Server) CreateGroup(w http.ResponseWriter, r *http.Request) {
 	var req model.CreateGroupRequest
 	if err := json.NewDecoder(&buf).Decode(&req); err != nil {
 		s.respond(w, http.StatusBadRequest, nil, ReqIDField(reqID), zap.Error(err))
+		return
 	}
 
 	resp, err := s.srv.CreateGroup(ctx, user, req.Name, req.Description)
@@ -169,7 +170,7 @@ func (s *Server) CreateGroup(w http.ResponseWriter, r *http.Request) {
 
 		fErr, ok := err.(*fielderr.Error)
 		if !ok {
-			s.respond(w, http.StatusBadRequest, nil, zap.Error(err), ReqIDField(reqID))
+			s.respond(w, http.StatusInternalServerError, nil, zap.Error(err), ReqIDField(reqID))
 			return
 		}
 
@@ -209,7 +210,8 @@ func (s *Server) CreateInviteLink(w http.ResponseWriter, r *http.Request) {
 	_ = r.Body.Close()
 
 	if err := json.NewDecoder(&buf).Decode(&req); err != nil {
-		s.respond(w, http.StatusInternalServerError, nil, zap.Error(err), ReqIDField(reqID))
+		s.respond(w, http.StatusBadRequest, nil, zap.Error(err), ReqIDField(reqID))
+		return
 	}
 
 	role := &model.Role{
@@ -434,7 +436,6 @@ func (s *Server) GetTask(w http.ResponseWriter, r *http.Request) {
 	var resp *model.Task
 	resp, err = s.srv.GetTask(r.Context(), u, g)
 	if err != nil {
-
 
 		if fErr, ok := err.(*fielderr.Error); ok {
 			s.respond(w, fErr.CodeHTTP(), fErr.Data(), append(fErr.Fields(), reqID)...)

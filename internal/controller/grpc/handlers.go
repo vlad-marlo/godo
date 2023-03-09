@@ -27,7 +27,7 @@ func (s *Server) Ping(ctx context.Context, _ *pb.PingRequest) (*pb.PingResponse,
 
 // CreateUser ...
 func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreateUserResponse, error) {
-	u, err := s.srv.RegisterUser(ctx, req.Email, req.Password)
+	u, err := s.srv.RegisterUser(ctx, req.GetEmail(), req.GetPassword())
 	if err != nil {
 		if fErr, ok := err.(*fielderr.Error); ok {
 			return nil, fErr.Err()
@@ -40,8 +40,9 @@ func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb
 	}, nil
 }
 
+// CreateToken ...
 func (s *Server) CreateToken(ctx context.Context, req *pb.CreateTokenRequest) (*pb.CreateTokenResponse, error) {
-	t, err := s.srv.CreateToken(ctx, req.Email, req.Password, req.TokenType)
+	t, err := s.srv.CreateToken(ctx, req.GetEmail(), req.GetPassword(), req.GetTokenType())
 	if err != nil {
 		if fErr, ok := err.(*fielderr.Error); ok {
 			return nil, fErr.Err()
@@ -54,6 +55,7 @@ func (s *Server) CreateToken(ctx context.Context, req *pb.CreateTokenRequest) (*
 	}, nil
 }
 
+// internal log message and return grpc error with Internal code.
 func (s *Server) internal(msg string, err error) error {
 	s.logger.Error(fmt.Sprintf("grpc: Service: %s: got unexpected error", msg), zap.Error(err))
 	return status.Errorf(codes.Internal, "unexpected error: %v", err)

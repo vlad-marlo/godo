@@ -12,7 +12,7 @@ import (
 )
 
 func TestNewError(t *testing.T) {
-	msg, data := "err", map[string]interface{}{"xd": "ds"}
+	msg, data := "err", map[string]any{"xd": "ds"}
 	err1 := New(msg, data, CodeInternal)
 	err2 := New(msg, data, CodeInternal)
 	assert.NotErrorIs(t, err1, err2)
@@ -33,7 +33,7 @@ func TestFieldError_Error(t *testing.T) {
 }
 
 func TestFieldError_Fields(t *testing.T) {
-	fields := map[string]interface{}{}
+	fields := map[string]any{}
 	var err = &Error{data: fields}
 	assert.Equal(t, err.Data(), fields)
 }

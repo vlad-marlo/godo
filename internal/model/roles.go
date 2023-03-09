@@ -2,7 +2,7 @@ package model
 
 type (
 	Role struct {
-		ID       int8
+		ID       int32
 		Members  int
 		Tasks    int
 		Reviews  int

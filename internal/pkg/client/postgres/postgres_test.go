@@ -1,6 +1,9 @@
 package postgres
 
 import (
+	"github.com/stretchr/testify/require"
+	"github.com/vlad-marlo/godo/internal/config"
+	"go.uber.org/fx/fxtest"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -70,4 +73,17 @@ func TestClient_Close(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestNew(t *testing.T) {
+	lc := fxtest.NewLifecycle(t)
+	cfg := config.New()
+	cli, err := New(lc, zap.L(), cfg)
+	require.Error(t, err)
+	require.Nil(t, cli)
+	cfg.Postgres.URI = ""
+	cfg.Postgres.URI = "postgresql://postgres:postgres@localhost:5432/postgres"
+	cli, err = New(lc, zap.L(), cfg)
+	assert.NoError(t, err)
+	assert.NotNil(t, cli)
 }

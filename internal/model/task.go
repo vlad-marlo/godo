@@ -41,14 +41,33 @@ func (task *Task) MarshalJSON() ([]byte, error) {
 	if task == nil {
 		return nil, nil
 	}
+	type TransactionAlias Task
 	task.Created = task.CreatedAt.Unix()
-	return json.Marshal(*task)
+
+	aliasValue := &struct {
+		*TransactionAlias
+	}{
+		// задаём указатель на целевой объект
+		TransactionAlias: (*TransactionAlias)(task),
+		// вызываем стандартный Unmarshal
+	}
+
+	return json.Marshal(aliasValue)
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
 // That gives developer flexibility to not thing about correct time layout passed into.
 func (task *Task) UnmarshalJSON(data []byte) (err error) {
-	if err = json.Unmarshal(data, task); err != nil {
+	if task == nil {
+		return nil
+	}
+	type TaskAlias Task
+	alias := &struct {
+		*TaskAlias
+	}{
+		TaskAlias: (*TaskAlias)(task),
+	}
+	if err = json.Unmarshal(data, alias); err != nil {
 		return err
 	}
 

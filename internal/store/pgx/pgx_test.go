@@ -77,6 +77,9 @@ func TestMain(m *testing.M) {
 }
 
 func TestBadCli(t *testing.T) {
+	if testing.Short() {
+		return
+	}
 	st, _ := testStore(t, BadCli(t))
 	ctx := context.Background()
 

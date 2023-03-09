@@ -2,9 +2,11 @@ package httpctrl
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vlad-marlo/godo/internal/controller/http/mocks"
@@ -15,6 +17,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestServer_RegisterUser_Positive(t *testing.T) {
@@ -279,4 +282,226 @@ func TestServer_CreateToken(t *testing.T) {
 	data, err := json.Marshal(http.StatusText(http.StatusBadRequest))
 	require.NoError(t, err)
 	assert.JSONEq(t, string(data), w.Body.String())
+}
+
+func TestServer_CreateGroup_MainPositive(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv := mocks.NewMockService(ctrl)
+
+	req := &model.CreateGroupRequest{
+		Name:        "test group",
+		Description: "test description",
+	}
+	resp := &model.CreateGroupResponse{
+		ID:          uuid.Nil,
+		Name:        req.Name,
+		Description: req.Description,
+		CreatedAt:   time.Now().Unix(),
+	}
+	srv.EXPECT().CreateGroup(context.Background(), uuid.Nil, req.Name, req.Description).Return(resp, nil)
+	s := TestServer(t, srv)
+	b, err := json.Marshal(req)
+	require.NoError(t, err)
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(b))
+	s.CreateGroup(w, r)
+	defer assert.NoError(t, r.Body.Close())
+	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
+
+	var got model.CreateGroupResponse
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &got))
+	assert.Equal(t, *resp, got)
+}
+
+func TestServer_CreateGroup_NoData(t *testing.T) {
+	s := TestServer(t, nil)
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(""))
+	//require.NoError(t, r.Body.Close())
+	s.CreateGroup(w, r)
+	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+
+}
+
+func TestServer_CreateGroup_UnknownErr(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv := mocks.NewMockService(ctrl)
+
+	req := &model.CreateGroupRequest{
+		Name:        "test group",
+		Description: "test description",
+	}
+
+	srv.EXPECT().
+		CreateGroup(context.Background(), uuid.Nil, req.Name, req.Description).
+		Return(nil, errors.New(""))
+
+	s := TestServer(t, srv)
+
+	b, err := json.Marshal(req)
+	require.NoError(t, err)
+	r := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(b))
+	defer assert.NoError(t, r.Body.Close())
+	w := httptest.NewRecorder()
+
+	s.CreateGroup(w, r)
+	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
+
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+}
+
+func TestServer_CreateGroup_FieldErr(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv := mocks.NewMockService(ctrl)
+
+	req := &model.CreateGroupRequest{
+		Name:        "test group",
+		Description: "test description",
+	}
+	fErr := fielderr.New("some error", req, fielderr.CodeForbidden)
+
+	srv.EXPECT().
+		CreateGroup(context.Background(), uuid.Nil, req.Name, req.Description).
+		Return(nil, fErr)
+
+	s := TestServer(t, srv)
+
+	b, err := json.Marshal(req)
+	require.NoError(t, err)
+	r := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(b))
+	defer assert.NoError(t, r.Body.Close())
+	w := httptest.NewRecorder()
+
+	s.CreateGroup(w, r)
+
+	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
+
+	assert.Equal(t, fErr.CodeHTTP(), res.StatusCode)
+
+	var jsonData []byte
+	jsonData, err = json.Marshal(fErr.Data())
+	require.NoError(t, err)
+	assert.JSONEq(t, string(jsonData), w.Body.String())
+}
+
+func TestServer_CreateInviteLink_MainPositive(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv := mocks.NewMockService(ctrl)
+
+	req := &model.CreateInviteRequest{
+		Group:   uuid.New(),
+		Limit:   2,
+		Member:  3,
+		Task:    4,
+		Review:  5,
+		Comment: 6,
+	}
+
+	role := &model.Role{
+		Members:  req.Member,
+		Tasks:    req.Task,
+		Reviews:  req.Review,
+		Comments: req.Comment,
+	}
+
+	resp := &model.CreateInviteResponse{
+		Link:  "some link",
+		Limit: req.Limit,
+	}
+
+	srv.EXPECT().CreateInvite(context.Background(), uuid.Nil, req.Group, gomock.Eq(role), 2).Return(resp, nil)
+
+	s := TestServer(t, srv)
+
+	b, err := json.Marshal(req)
+	require.NoError(t, err)
+
+	r := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(b))
+	defer assert.NoError(t, r.Body.Close())
+	w := httptest.NewRecorder()
+
+	s.CreateInviteLink(w, r)
+	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
+
+	var jsonResp []byte
+	jsonResp, err = json.Marshal(resp)
+	require.NoError(t, err)
+	assert.JSONEq(t, string(jsonResp), w.Body.String())
+	assert.Equal(t, http.StatusCreated, w.Code)
+}
+
+func TestServer_CreateInviteLink_BadData(t *testing.T) {
+	s := TestServer(t, nil)
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(""))
+	defer assert.NoError(t, r.Body.Close())
+	s.CreateInviteLink(w, r)
+	res := w.Result()
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestServer_CreateInviteLink_DifferentErrors(t *testing.T) {
+	type testCase struct {
+		name string
+		err  error
+	}
+	tt := []testCase{
+		{"unknown", errors.New("")},
+		{"bad auth data", service.ErrBadAuthData},
+		{"internal", service.ErrBadInvite},
+	}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			srv := mocks.NewMockService(ctrl)
+
+			req := &model.CreateInviteRequest{
+				Group:   uuid.New(),
+				Limit:   2,
+				Member:  3,
+				Task:    4,
+				Review:  5,
+				Comment: 6,
+			}
+
+			role := &model.Role{
+				Members:  req.Member,
+				Tasks:    req.Task,
+				Reviews:  req.Review,
+				Comments: req.Comment,
+			}
+
+			srv.EXPECT().CreateInvite(context.Background(), uuid.Nil, req.Group, gomock.Eq(role), 2).Return(nil, tc.err)
+
+			s := TestServer(t, srv)
+
+			b, err := json.Marshal(req)
+			require.NoError(t, err)
+
+			r := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(b))
+			defer assert.NoError(t, r.Body.Close())
+			w := httptest.NewRecorder()
+
+			s.CreateInviteLink(w, r)
+			res := w.Result()
+			defer assert.NoError(t, res.Body.Close())
+
+			fErr, ok := tc.err.(*fielderr.Error)
+			if !ok {
+				require.Equal(t, http.StatusInternalServerError, w.Code)
+				return
+			}
+			var data []byte
+			data, err = json.Marshal(fErr.Data())
+			require.NoError(t, err)
+			assert.JSONEq(t, string(data), w.Body.String())
+		})
+	}
 }

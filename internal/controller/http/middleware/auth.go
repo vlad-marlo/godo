@@ -50,7 +50,7 @@ func AuthChecker(srv Service) func(next http.Handler) http.Handler {
 }
 
 // respond helper function to write response to user.
-func respond(w http.ResponseWriter, code int, data interface{}, fields ...zap.Field) {
+func respond(w http.ResponseWriter, code int, data any, fields ...zap.Field) {
 	var lvl zapcore.Level
 	switch {
 	case code >= 500:
@@ -85,5 +85,12 @@ func WithUser(r *http.Request, u uuid.UUID) *http.Request {
 
 // UserFromCtx must be used with AuthChecker middleware. To get user from request you must pass *http.Request.Context() into func.
 func UserFromCtx(ctx context.Context) uuid.UUID {
-	return ctx.Value(userInCtxKey{}).(uuid.UUID)
+	if ctx == nil {
+		return uuid.Nil
+	}
+
+	if u, ok := ctx.Value(userInCtxKey{}).(uuid.UUID); ok {
+		return u
+	}
+	return uuid.Nil
 }

@@ -176,6 +176,7 @@ func teardown(t testing.TB, cli Client) func(...string) {
 
 // BadCli return client that has pool that not connected to real database.
 func BadCli(t testing.TB) Client {
+	t.Helper()
 	ctrl := gomock.NewController(t)
 	cli := mocks.NewMockClient(ctrl)
 	cli.EXPECT().L().Return(zap.L()).AnyTimes()

@@ -60,18 +60,22 @@ func (f *Error) With(fields ...zap.Field) *Error {
 	}
 }
 
+// Data return data to return to user.
 func (f *Error) Data() any {
 	return f.data
 }
 
+// Err returns prepared grpc error with msg message and correct grpc code.
 func (f *Error) Err() error {
 	return status.Error(f.CodeGRPC(), f.msg)
 }
 
+// Code return internal code.
 func (f *Error) Code() int {
 	return f.code
 }
 
+// Fields return zap fields.
 func (f *Error) Fields() []zap.Field {
 	return f.fields
 }
