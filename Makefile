@@ -6,7 +6,7 @@ build:
 t:
 	go generate ./...
 	tern migrate --config migrations/tern.conf --migrations migrations --database godo_test
-	go test --v ./... --count=1  --coverpkg=./internal/... --coverprofile=coverage.out  --test.short=true
+	go test --v ./... --count=1 --coverpkg=./internal/... --coverprofile=coverage.out --test.short=true
 
 .PHONY: test
 test:

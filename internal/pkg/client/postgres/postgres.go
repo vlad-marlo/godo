@@ -30,6 +30,7 @@ type Client struct {
 // New return a singleton client object.
 func New(lc fx.Lifecycle, log *zap.Logger, cfg *config.Config) (*Client, error) {
 	var pool *pgxpool.Pool
+	log.Info("pgConfig", zap.Any("cfg", cfg.Postgres))
 
 	c, err := pgxpool.ParseConfig(
 		cfg.Postgres.URI,

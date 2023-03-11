@@ -1,4 +1,3 @@
-//go:generate mockgen --source=auth.go --destination=mocks/service.go --package=mocks
 package middleware
 
 import (
@@ -44,7 +43,7 @@ func AuthChecker(srv Service) func(next http.Handler) http.Handler {
 				return
 			}
 
-			next.ServeHTTP(w, WithUser(r, u))
+			next.ServeHTTP(w, RequestWithUser(r, u))
 		})
 	}
 }
@@ -77,9 +76,17 @@ func respond(w http.ResponseWriter, code int, data any, fields ...zap.Field) {
 	}
 }
 
-// WithUser adds user to request's context.
+// ContextWithUser add user to context.
+func ContextWithUser(ctx context.Context, u uuid.UUID) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return context.WithValue(ctx, userInCtxKey{}, u)
+}
+
+// RequestWithUser adds user to request's context.
 // To get user id from request use UserFromContext.
-func WithUser(r *http.Request, u uuid.UUID) *http.Request {
+func RequestWithUser(r *http.Request, u uuid.UUID) *http.Request {
 	return r.WithContext(context.WithValue(r.Context(), userInCtxKey{}, u))
 }
 

@@ -1,6 +1,8 @@
 package postgres
 
 import (
+	"fmt"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/vlad-marlo/godo/internal/config"
 	"go.uber.org/fx/fxtest"
@@ -76,14 +78,19 @@ func TestClient_Close(t *testing.T) {
 }
 
 func TestNew(t *testing.T) {
+	log := zap.L()
+
 	lc := fxtest.NewLifecycle(t)
+
 	cfg := config.New()
-	cli, err := New(lc, zap.L(), cfg)
+	cfg.Postgres = config.Postgres{URI: "postgresql://l:l@l:l/l"}
+
+	cli, err := New(lc, log, cfg)
 	require.Error(t, err)
 	require.Nil(t, cli)
-	cfg.Postgres.URI = ""
-	cfg.Postgres.URI = "postgresql://postgres:postgres@localhost:5432/postgres"
-	cli, err = New(lc, zap.L(), cfg)
+
+	cfg.Postgres.URI = fmt.Sprintf("postgresql://%s:%s@%s:5432/%s", uuid.NewString(), uuid.NewString(), uuid.NewString(), uuid.NewString())
+	cli, err = New(lc, log, cfg)
 	assert.NoError(t, err)
 	assert.NotNil(t, cli)
 }

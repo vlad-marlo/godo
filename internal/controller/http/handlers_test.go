@@ -5,14 +5,18 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/go-chi/chi/v5"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/vlad-marlo/godo/internal/controller/http/mocks"
+	"github.com/vlad-marlo/godo/internal/config"
+	mw "github.com/vlad-marlo/godo/internal/controller/http/middleware"
 	"github.com/vlad-marlo/godo/internal/model"
 	"github.com/vlad-marlo/godo/internal/pkg/fielderr"
 	"github.com/vlad-marlo/godo/internal/service"
+	"github.com/vlad-marlo/godo/internal/service/mocks"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -33,7 +37,7 @@ func TestServer_RegisterUser_Positive(t *testing.T) {
 	}
 
 	ctrl := gomock.NewController(t)
-	srv := mocks.NewMockService(ctrl)
+	srv := mocks.NewMockInterface(ctrl)
 
 	srv.EXPECT().RegisterUser(gomock.Any(), req.Email, req.Password).Return(TestUser1, nil)
 	s := TestServer(t, srv)
@@ -78,7 +82,7 @@ func TestServer_RegisterUser_Negative(t *testing.T) {
 			body := bytes.NewReader(req)
 
 			ctrl := gomock.NewController(t)
-			srv := mocks.NewMockService(ctrl)
+			srv := mocks.NewMockInterface(ctrl)
 			srv.EXPECT().RegisterUser(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, tc.err).AnyTimes()
 			s := TestServer(t, srv)
 
@@ -111,7 +115,7 @@ func TestServer_RegisterUser_Negative(t *testing.T) {
 
 func TestServer_RegisterUser(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	srv := mocks.NewMockService(ctrl)
+	srv := mocks.NewMockInterface(ctrl)
 	s := TestServer(t, srv)
 
 	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("[xd:"))
@@ -132,7 +136,7 @@ func TestServer_RegisterUser(t *testing.T) {
 
 func TestServer_Ping_FieldErr(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	srv := mocks.NewMockService(ctrl)
+	srv := mocks.NewMockInterface(ctrl)
 	fErr := service.ErrPasswordToLong
 	srv.EXPECT().Ping(gomock.Any()).Return(fErr)
 	s := TestServer(t, srv)
@@ -153,7 +157,7 @@ func TestServer_Ping_FieldErr(t *testing.T) {
 
 func TestServer_Ping_NilErr(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	srv := mocks.NewMockService(ctrl)
+	srv := mocks.NewMockInterface(ctrl)
 	srv.EXPECT().Ping(gomock.Any()).Return(nil)
 	s := TestServer(t, srv)
 
@@ -170,7 +174,7 @@ func TestServer_Ping_NilErr(t *testing.T) {
 
 func TestServer_Ping_UnknownErr(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	srv := mocks.NewMockService(ctrl)
+	srv := mocks.NewMockInterface(ctrl)
 	srv.EXPECT().Ping(gomock.Any()).Return(errors.New(""))
 	s := TestServer(t, srv)
 
@@ -190,10 +194,10 @@ func TestServer_Ping_UnknownErr(t *testing.T) {
 
 func TestServer_CreateToken_MainPositive(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	srv := mocks.NewMockService(ctrl)
+	srv := mocks.NewMockInterface(ctrl)
 	resp := &model.CreateTokenResponse{
 		TokenType:   "authorization",
-		AccessToken: "jklsadfhlsadfhjksadjlhf",
+		AccessToken: "some token",
 	}
 	srv.EXPECT().CreateToken(gomock.Any(), TestTokenRequest.Email, TestTokenRequest.Password, TestTokenRequest.TokenType).Return(resp, nil)
 	s := TestServer(t, srv)
@@ -229,7 +233,7 @@ func TestServer_CreateToken_Bad(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			srv := mocks.NewMockService(ctrl)
+			srv := mocks.NewMockInterface(ctrl)
 			srv.EXPECT().CreateToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, tc.srvErr)
 			s := TestServer(t, srv)
 
@@ -265,7 +269,7 @@ func TestServer_CreateToken_Bad(t *testing.T) {
 
 func TestServer_CreateToken(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	srv := mocks.NewMockService(ctrl)
+	srv := mocks.NewMockInterface(ctrl)
 	s := TestServer(t, srv)
 
 	w := httptest.NewRecorder()
@@ -286,7 +290,7 @@ func TestServer_CreateToken(t *testing.T) {
 
 func TestServer_CreateGroup_MainPositive(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	srv := mocks.NewMockService(ctrl)
+	srv := mocks.NewMockInterface(ctrl)
 
 	req := &model.CreateGroupRequest{
 		Name:        "test group",
@@ -329,7 +333,7 @@ func TestServer_CreateGroup_NoData(t *testing.T) {
 
 func TestServer_CreateGroup_UnknownErr(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	srv := mocks.NewMockService(ctrl)
+	srv := mocks.NewMockInterface(ctrl)
 
 	req := &model.CreateGroupRequest{
 		Name:        "test group",
@@ -357,7 +361,7 @@ func TestServer_CreateGroup_UnknownErr(t *testing.T) {
 
 func TestServer_CreateGroup_FieldErr(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	srv := mocks.NewMockService(ctrl)
+	srv := mocks.NewMockInterface(ctrl)
 
 	req := &model.CreateGroupRequest{
 		Name:        "test group",
@@ -392,7 +396,7 @@ func TestServer_CreateGroup_FieldErr(t *testing.T) {
 
 func TestServer_CreateInviteLink_MainPositive(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	srv := mocks.NewMockService(ctrl)
+	srv := mocks.NewMockInterface(ctrl)
 
 	req := &model.CreateInviteRequest{
 		Group:   uuid.New(),
@@ -460,7 +464,7 @@ func TestServer_CreateInviteLink_DifferentErrors(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			srv := mocks.NewMockService(ctrl)
+			srv := mocks.NewMockInterface(ctrl)
 
 			req := &model.CreateInviteRequest{
 				Group:   uuid.New(),
@@ -502,6 +506,374 @@ func TestServer_CreateInviteLink_DifferentErrors(t *testing.T) {
 			data, err = json.Marshal(fErr.Data())
 			require.NoError(t, err)
 			assert.JSONEq(t, string(data), w.Body.String())
+		})
+	}
+}
+
+func reqWithGroup(t testing.TB, r *http.Request, id string) *http.Request {
+	t.Helper()
+	rCtx := chi.NewRouteContext()
+	rCtx.URLParams.Add("group_id", id)
+	r = r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rCtx))
+	require.Equal(t, id, chi.URLParam(r, "group_id"))
+	return r
+}
+
+func TestServer_CreateInviteViaGroup_MainPositive(t *testing.T) {
+	id := uuid.New()
+	req := &model.CreateInviteViaGroupRequest{
+		Limit:   2,
+		Member:  2,
+		Task:    0,
+		Review:  2,
+		Comment: 2,
+	}
+
+	b, err := json.Marshal(req)
+	require.NoError(t, err)
+
+	r := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(b))
+	r = reqWithGroup(t, r, id.String())
+	r = mw.RequestWithUser(r, id)
+	defer assert.NoError(t, r.Body.Close())
+	w := httptest.NewRecorder()
+
+	ctrl := gomock.NewController(t)
+	srv := mocks.NewMockInterface(ctrl)
+	resp := &model.CreateInviteResponse{
+		Link:  "some link",
+		Limit: 2,
+	}
+	srv.
+		EXPECT().
+		CreateInvite(
+			gomock.Any(),
+			id,
+			id,
+			gomock.Eq(&model.Role{
+				ID:       0,
+				Members:  req.Member,
+				Tasks:    req.Task,
+				Reviews:  req.Review,
+				Comments: req.Comment,
+			}),
+			req.Limit,
+		).
+		Return(resp, nil)
+
+	s := TestServer(t, srv)
+
+	s.CreateInviteViaGroup(w, r)
+
+	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
+
+	var expected []byte
+	expected, err = json.Marshal(resp)
+	require.NoError(t, err)
+
+	assert.JSONEq(t, string(expected), w.Body.String())
+	assert.Equal(t, http.StatusCreated, w.Code)
+}
+
+func TestServer_CreateInviteViaGroup_BadGroup(t *testing.T) {
+	id := uuid.New()
+	req := &model.CreateInviteViaGroupRequest{
+		Limit:   2,
+		Member:  2,
+		Task:    0,
+		Review:  2,
+		Comment: 2,
+	}
+
+	b, err := json.Marshal(req)
+	require.NoError(t, err)
+
+	r := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(b))
+	r = reqWithGroup(t, r, "bad_id")
+	r = mw.RequestWithUser(r, id)
+	defer assert.NoError(t, r.Body.Close())
+	w := httptest.NewRecorder()
+
+	ctrl := gomock.NewController(t)
+	srv := mocks.NewMockInterface(ctrl)
+
+	s := TestServer(t, srv)
+
+	s.CreateInviteViaGroup(w, r)
+
+	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
+
+	var expected []byte
+	expected, err = json.Marshal(map[string]string{"path": "bad group id"})
+	require.NoError(t, err)
+
+	assert.JSONEq(t, string(expected), w.Body.String())
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestServer_CreateInviteViaGroup_Errors(t *testing.T) {
+	tt := []struct {
+		name string
+		err  error
+	}{
+		{"unknown error", errors.New("")},
+		{"field error: conflict", fielderr.New("some msg", map[string]string{"some": "data"}, fielderr.CodeConflict)},
+		{"field error: internal", fielderr.New("some msg", "some text", fielderr.CodeInternal)},
+		{"field error: forbidden", fielderr.New("some msg", config.New(), fielderr.CodeForbidden)},
+	}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			id := uuid.New()
+			req := &model.CreateInviteViaGroupRequest{
+				Limit:   2,
+				Member:  2,
+				Task:    0,
+				Review:  2,
+				Comment: 2,
+			}
+
+			b, err := json.Marshal(req)
+			require.NoError(t, err)
+
+			r := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(b))
+			r = reqWithGroup(t, r, id.String())
+			r = mw.RequestWithUser(r, id)
+			defer assert.NoError(t, r.Body.Close())
+			w := httptest.NewRecorder()
+
+			ctrl := gomock.NewController(t)
+			srv := mocks.NewMockInterface(ctrl)
+			srv.
+				EXPECT().
+				CreateInvite(
+					gomock.Any(),
+					id,
+					id,
+					gomock.Eq(&model.Role{
+						ID:       0,
+						Members:  req.Member,
+						Tasks:    req.Task,
+						Reviews:  req.Review,
+						Comments: req.Comment,
+					}),
+					req.Limit,
+				).
+				Return(nil, tc.err)
+
+			s := TestServer(t, srv)
+
+			s.CreateInviteViaGroup(w, r)
+
+			res := w.Result()
+			defer assert.NoError(t, res.Body.Close())
+
+			fErr, ok := tc.err.(*fielderr.Error)
+			if !ok {
+				assert.Equal(t, http.StatusInternalServerError, w.Code)
+				return
+			}
+			var expected []byte
+			expected, err = json.Marshal(fErr.Data())
+			require.NoError(t, err)
+
+			assert.JSONEq(t, string(expected), w.Body.String())
+			assert.Equal(t, fErr.CodeHTTP(), w.Code)
+		})
+	}
+}
+
+func TestServer_UseInvite_Positive(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv := mocks.NewMockInterface(ctrl)
+
+	invite := uuid.New()
+	group := uuid.New()
+	srv.EXPECT().UseInvite(gomock.Any(), uuid.Nil, group, invite).Return(nil)
+
+	s := TestServer(t, srv)
+
+	r := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/?%s=%s", InviteInQueryKey, invite.String()), nil)
+	r = reqWithGroup(t, r, group.String())
+	defer assert.NoError(t, r.Body.Close())
+	w := httptest.NewRecorder()
+
+	s.UseInvite(w, r)
+	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+}
+
+func TestServer_UseInvite_BadInvite(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv := mocks.NewMockInterface(ctrl)
+
+	invite := "xd"
+	group := uuid.New()
+
+	s := TestServer(t, srv)
+
+	r := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/?%s=%s", InviteInQueryKey, invite), nil)
+	r = reqWithGroup(t, r, group.String())
+	defer assert.NoError(t, r.Body.Close())
+	w := httptest.NewRecorder()
+
+	s.UseInvite(w, r)
+	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
+
+	data, err := json.Marshal(map[string]string{"query": "invite must be valid uuid"})
+	require.NoError(t, err)
+	assert.JSONEq(t, string(data), w.Body.String())
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestServer_UseInvite_BadGroup(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv := mocks.NewMockInterface(ctrl)
+
+	invite := uuid.New()
+	group := "bad_group_id"
+
+	s := TestServer(t, srv)
+
+	r := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/?%s=%s", InviteInQueryKey, invite.String()), nil)
+	r = reqWithGroup(t, r, group)
+	defer assert.NoError(t, r.Body.Close())
+	w := httptest.NewRecorder()
+
+	s.UseInvite(w, r)
+	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
+
+	data, err := json.Marshal(map[string]string{"url": "invite must be valid group id in it"})
+	require.NoError(t, err)
+	assert.JSONEq(t, string(data), w.Body.String())
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestServer_UseInvite_NegativeBadErrors(t *testing.T) {
+	tt := []struct {
+		name string
+		err  error
+	}{
+		{"unknown error", errors.New("")},
+		{"field error: conflict", fielderr.New("some msg", map[string]string{"some": "data"}, fielderr.CodeConflict)},
+		{"field error: internal", fielderr.New("some msg", "some text", fielderr.CodeInternal)},
+		{"field error: forbidden", fielderr.New("some msg", config.New(), fielderr.CodeForbidden)},
+	}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			srv := mocks.NewMockInterface(ctrl)
+
+			invite := uuid.New()
+			group := uuid.New()
+			srv.EXPECT().UseInvite(gomock.Any(), uuid.Nil, group, invite).Return(tc.err)
+
+			s := TestServer(t, srv)
+
+			r := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/?%s=%s", InviteInQueryKey, invite.String()), nil)
+			r = reqWithGroup(t, r, group.String())
+			defer assert.NoError(t, r.Body.Close())
+			w := httptest.NewRecorder()
+
+			s.UseInvite(w, r)
+			res := w.Result()
+			defer assert.NoError(t, res.Body.Close())
+
+			fErr, ok := tc.err.(*fielderr.Error)
+			if !ok {
+				assert.Equal(t, http.StatusInternalServerError, w.Code)
+				return
+			}
+			body, err := json.Marshal(fErr.Data())
+			require.NoError(t, err)
+
+			assert.Equal(t, fErr.CodeHTTP(), w.Code)
+			assert.JSONEq(t, string(body), w.Body.String())
+		})
+	}
+}
+
+func TestServer_UserMe_Positive(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv := mocks.NewMockInterface(ctrl)
+
+	u := uuid.New()
+	resp := &model.GetMeResponse{
+		ID:    u,
+		Email: "example@email.org",
+		Groups: []model.GroupInUser{
+			{
+				uuid.New(),
+				"group #1",
+				"description",
+				[]*model.Task{
+					{uuid.New(), "task", "description", time.Now(), u, time.Now().Unix(), "NEW"},
+					{uuid.New(), "other task", "other description", time.Now(), u, time.Now().Unix(), "NEW"},
+				},
+			},
+			{uuid.New(), "group #2", "other desc", nil},
+		},
+	}
+
+	srv.EXPECT().GetMe(gomock.Any(), u).Return(resp, nil)
+
+	r := mw.RequestWithUser(httptest.NewRequest("", "/", nil), u)
+	defer assert.NoError(t, r.Body.Close())
+	w := httptest.NewRecorder()
+	s := TestServer(t, srv)
+
+	s.UserMe(w, r)
+
+	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
+
+	body, err := json.Marshal(resp)
+	require.NoError(t, err)
+	assert.JSONEq(t, string(body), w.Body.String())
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestServer_UserMe_Negative(t *testing.T) {
+	tt := []struct {
+		name string
+		err  error
+	}{
+		{"unknown error", errors.New("")},
+		{"field error: conflict", fielderr.New("some msg", map[string]string{"some": "data"}, fielderr.CodeConflict)},
+		{"field error: internal", fielderr.New("some msg", "some text", fielderr.CodeInternal)},
+		{"field error: forbidden", fielderr.New("some msg", config.New(), fielderr.CodeForbidden)},
+	}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			srv := mocks.NewMockInterface(ctrl)
+			srv.EXPECT().GetMe(gomock.Any(), uuid.Nil).Return(nil, tc.err)
+			s := TestServer(t, srv)
+
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest("", "/", nil)
+			defer assert.NoError(t, r.Body.Close())
+
+			s.UserMe(w, r)
+
+			res := w.Result()
+			defer assert.NoError(t, res.Body.Close())
+
+			fErr, ok := tc.err.(*fielderr.Error)
+			if !ok {
+				assert.Equal(t, http.StatusInternalServerError, w.Code)
+				return
+			}
+			body, err := json.Marshal(fErr.Data())
+			require.NoError(t, err)
+
+			assert.JSONEq(t, string(body), w.Body.String())
+			assert.Equal(t, fErr.CodeHTTP(), w.Code)
 		})
 	}
 }

@@ -268,6 +268,7 @@ func (c *Config) ParseFromFile(file string) error {
 	return nil
 }
 
+// WriteToFile ...
 func (c *Config) WriteToFile(file string) error {
 	_ = os.Remove(file)
 

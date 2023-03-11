@@ -30,7 +30,7 @@ func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb
 	u, err := s.srv.RegisterUser(ctx, req.GetEmail(), req.GetPassword())
 	if err != nil {
 		if fErr, ok := err.(*fielderr.Error); ok {
-			return nil, fErr.Err()
+			return nil, fErr.ErrGRPC()
 		}
 		return nil, s.internal("register user", err)
 	}
@@ -45,7 +45,7 @@ func (s *Server) CreateToken(ctx context.Context, req *pb.CreateTokenRequest) (*
 	t, err := s.srv.CreateToken(ctx, req.GetEmail(), req.GetPassword(), req.GetTokenType())
 	if err != nil {
 		if fErr, ok := err.(*fielderr.Error); ok {
-			return nil, fErr.Err()
+			return nil, fErr.ErrGRPC()
 		}
 		return nil, s.internal("create token", err)
 	}

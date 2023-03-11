@@ -15,6 +15,10 @@ import (
 )
 
 const ZapRequestIDFieldName = "request_id"
+const (
+	GroupIDParamName = "group_id"
+	InviteInQueryKey = "invite"
+)
 
 // ReqIDField return named zap field with reqID in it.
 func ReqIDField(reqID string) zap.Field {
@@ -267,14 +271,15 @@ func (s *Server) CreateInviteViaGroup(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = r.Body.Close()
 
-	group, err := uuid.Parse(chi.URLParam(r, "group_id"))
+	group, err := uuid.Parse(chi.URLParam(r, GroupIDParamName))
 	if err != nil {
-		s.respond(w, http.StatusBadRequest, "bad group id", zap.Error(err), ReqIDField(reqID))
+		s.respond(w, http.StatusBadRequest, map[string]string{"path": "bad group id"}, zap.Error(err), ReqIDField(reqID))
 		return
 	}
 
 	if err = json.NewDecoder(&buf).Decode(&req); err != nil {
-		s.respond(w, http.StatusInternalServerError, nil, zap.Error(err), ReqIDField(reqID))
+		s.respond(w, http.StatusBadRequest, nil, zap.Error(err), ReqIDField(reqID))
+		return
 	}
 
 	role := &model.Role{
@@ -320,28 +325,34 @@ func (s *Server) CreateInviteViaGroup(w http.ResponseWriter, r *http.Request) {
 //	@Router		/groups/{group_id}/apply [post]
 func (s *Server) UseInvite(w http.ResponseWriter, r *http.Request) {
 	reqID := ReqIDField(middleware.GetReqID(r.Context()))
+	_ = r.Body.Close()
 
 	user := mw.UserFromCtx(r.Context())
-	group, err := uuid.Parse(chi.URLParam(r, "group_id"))
+
+	group, err := uuid.Parse(chi.URLParam(r, GroupIDParamName))
 	if err != nil {
-		s.internal(w, reqID, zap.Error(err))
+		s.respond(w, http.StatusBadRequest, map[string]string{"url": "invite must be valid group id in it"}, reqID)
 		return
 	}
+
 	var invite uuid.UUID
-	invite, err = uuid.Parse(r.URL.Query().Get("invite"))
+	invite, err = uuid.Parse(r.URL.Query().Get(InviteInQueryKey))
 	if err != nil {
-		s.internal(w, reqID, zap.Error(err))
+		s.respond(w, http.StatusBadRequest, map[string]string{"query": "invite must be valid uuid"}, reqID)
 		return
 	}
 
 	if err = s.srv.UseInvite(r.Context(), user, group, invite); err != nil {
+
 		if fErr, ok := err.(*fielderr.Error); ok {
 			s.respond(w, fErr.CodeHTTP(), fErr.Data(), append(fErr.Fields(), reqID)...)
 			return
 		}
+
 		s.internal(w, reqID, zap.Error(err))
 		return
 	}
+
 	s.respond(w, http.StatusOK, nil, reqID)
 }
 
@@ -365,13 +376,16 @@ func (s *Server) UserMe(w http.ResponseWriter, r *http.Request) {
 	u := mw.UserFromCtx(r.Context())
 	resp, err := s.srv.GetMe(r.Context(), u)
 	if err != nil {
+		
 		if fErr, ok := err.(*fielderr.Error); ok {
 			s.respond(w, fErr.CodeHTTP(), fErr.Data(), append(fErr.Fields(), reqID)...)
 			return
 		}
-		s.respond(w, http.StatusInternalServerError, nil, reqID, zap.Error(err))
+
+		s.internal(w, reqID, zap.Error(err))
 		return
 	}
+
 	s.respond(w, http.StatusOK, resp, reqID)
 }
 

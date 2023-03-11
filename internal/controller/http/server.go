@@ -1,4 +1,3 @@
-//go:generate mockgen --source=server.go --destination=mocks/service.go --package=mocks
 package httpctrl
 
 import (
