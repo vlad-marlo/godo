@@ -14,10 +14,10 @@ import (
 	"net/http"
 )
 
-const ZapRequestIDFieldName = "request_id"
 const (
-	GroupIDParamName = "group_id"
-	InviteInQueryKey = "invite"
+	ZapRequestIDFieldName = "request_id"
+	GroupIDParamName      = "group_id"
+	InviteInQueryKey      = "invite"
 )
 
 // ReqIDField return named zap field with reqID in it.
@@ -376,7 +376,7 @@ func (s *Server) UserMe(w http.ResponseWriter, r *http.Request) {
 	u := mw.UserFromCtx(r.Context())
 	resp, err := s.srv.GetMe(r.Context(), u)
 	if err != nil {
-		
+
 		if fErr, ok := err.(*fielderr.Error); ok {
 			s.respond(w, fErr.CodeHTTP(), fErr.Data(), append(fErr.Fields(), reqID)...)
 			return
@@ -414,7 +414,7 @@ func (s *Server) AllTasks(w http.ResponseWriter, r *http.Request) {
 			s.respond(w, fErr.CodeHTTP(), fErr.Data(), append(fErr.Fields(), reqID)...)
 			return
 		}
-		s.respond(w, http.StatusInternalServerError, nil, zap.Error(err), reqID)
+		s.internal(w, zap.Error(err), reqID)
 		return
 	}
 
@@ -443,7 +443,7 @@ func (s *Server) GetTask(w http.ResponseWriter, r *http.Request) {
 	u := mw.UserFromCtx(r.Context())
 	g, err := uuid.Parse(chi.URLParam(r, "task_id"))
 	if err != nil {
-		s.respond(w, http.StatusNotFound, nil, zap.Error(err))
+		s.respond(w, http.StatusBadRequest, nil, zap.Error(err))
 		return
 	}
 

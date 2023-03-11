@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/go-chi/chi/v5"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -510,15 +509,6 @@ func TestServer_CreateInviteLink_DifferentErrors(t *testing.T) {
 	}
 }
 
-func reqWithGroup(t testing.TB, r *http.Request, id string) *http.Request {
-	t.Helper()
-	rCtx := chi.NewRouteContext()
-	rCtx.URLParams.Add("group_id", id)
-	r = r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rCtx))
-	require.Equal(t, id, chi.URLParam(r, "group_id"))
-	return r
-}
-
 func TestServer_CreateInviteViaGroup_MainPositive(t *testing.T) {
 	id := uuid.New()
 	req := &model.CreateInviteViaGroupRequest{
@@ -873,6 +863,166 @@ func TestServer_UserMe_Negative(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.JSONEq(t, string(body), w.Body.String())
+			assert.Equal(t, fErr.CodeHTTP(), w.Code)
+		})
+	}
+}
+
+func TestServer_GetTask_MainPositive(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv := mocks.NewMockInterface(ctrl)
+	resp := &model.Task{
+		ID:          uuid.New(),
+		Name:        "task name",
+		Description: "task desc",
+		CreatedAt:   time.Now(),
+		CreatedBy:   uuid.Nil,
+		Created:     0,
+		Status:      "NEW",
+	}
+	srv.EXPECT().GetTask(gomock.Any(), gomock.Any(), gomock.Any()).Return(resp, nil)
+
+	s := TestServer(t, srv)
+
+	w := httptest.NewRecorder()
+	r := reqWithTask(t, httptest.NewRequest("", "/", nil), uuid.NewString())
+	defer assert.NoError(t, r.Body.Close())
+
+	s.GetTask(w, r)
+
+	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
+
+	body, err := json.Marshal(resp)
+	require.NoError(t, err)
+	assert.JSONEq(t, string(body), w.Body.String())
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestServer_GetTask_BadTask(t *testing.T) {
+	s := TestServer(t, nil)
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("", "/", nil)
+	defer assert.NoError(t, r.Body.Close())
+
+	s.GetTask(w, r)
+
+	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestServer_GetTask_Errors(t *testing.T) {
+	tt := []struct {
+		name string
+		err  error
+	}{
+		{"unknown error", errors.New("")},
+		{"field error: conflict", fielderr.New("some msg", map[string]string{"some": "data"}, fielderr.CodeConflict)},
+		{"field error: internal", fielderr.New("some msg", "some text", fielderr.CodeInternal)},
+		{"field error: forbidden", fielderr.New("some msg", config.New(), fielderr.CodeForbidden)},
+	}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			srv := mocks.NewMockInterface(ctrl)
+
+			srv.
+				EXPECT().
+				GetTask(gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(nil, tc.err)
+
+			s := TestServer(t, srv)
+
+			w := httptest.NewRecorder()
+			r := reqWithTask(t, httptest.NewRequest("", "/", nil), uuid.NewString())
+			defer assert.NoError(t, r.Body.Close())
+
+			s.GetTask(w, r)
+
+			fErr, ok := tc.err.(*fielderr.Error)
+			if !ok {
+				assert.Equal(t, http.StatusInternalServerError, w.Code)
+				return
+			}
+			data, err := json.Marshal(fErr.Data())
+			require.NoError(t, err)
+			assert.JSONEq(t, string(data), w.Body.String())
+			assert.Equal(t, fErr.CodeHTTP(), w.Code)
+		})
+	}
+}
+
+func TestServer_AllTasks_Positive(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv := mocks.NewMockInterface(ctrl)
+	resp := &model.GetTasksResponse{
+		Count: 5,
+		Tasks: []*model.Task{
+			{uuid.New(), uuid.NewString(), uuid.NewString(), time.Now(), uuid.New(), 0, uuid.NewString()},
+			{uuid.New(), uuid.NewString(), uuid.NewString(), time.Now(), uuid.New(), 0, uuid.NewString()},
+			{uuid.New(), uuid.NewString(), uuid.NewString(), time.Now(), uuid.New(), 0, uuid.NewString()},
+			{uuid.New(), uuid.NewString(), uuid.NewString(), time.Now(), uuid.New(), 0, uuid.NewString()},
+			{uuid.New(), uuid.NewString(), uuid.NewString(), time.Now(), uuid.New(), 0, uuid.NewString()},
+		},
+	}
+	srv.EXPECT().GetUserTasks(gomock.Any(), uuid.Nil).Return(resp, nil)
+
+	s := TestServer(t, srv)
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("", "/", nil)
+	defer assert.NoError(t, r.Body.Close())
+
+	s.AllTasks(w, r)
+
+	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
+
+	body, err := json.Marshal(resp)
+	require.NoError(t, err)
+	assert.JSONEq(t, string(body), w.Body.String())
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestServer_AllTasks_Errors(t *testing.T) {
+	tt := []struct {
+		name string
+		err  error
+	}{
+		{"unknown error", errors.New("")},
+		{"field error: conflict", fielderr.New("some msg", map[string]string{"some": "data"}, fielderr.CodeConflict)},
+		{"field error: internal", fielderr.New("some msg", "some text", fielderr.CodeInternal)},
+		{"field error: forbidden", fielderr.New("some msg", config.New(), fielderr.CodeForbidden)},
+	}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			srv := mocks.NewMockInterface(ctrl)
+
+			srv.
+				EXPECT().
+				GetUserTasks(gomock.Any(), gomock.Any()).
+				Return(nil, tc.err)
+
+			s := TestServer(t, srv)
+
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest("", "/", nil)
+			defer assert.NoError(t, r.Body.Close())
+
+			s.AllTasks(w, r)
+
+			fErr, ok := tc.err.(*fielderr.Error)
+			if !ok {
+				assert.Equal(t, http.StatusInternalServerError, w.Code)
+				return
+			}
+			data, err := json.Marshal(fErr.Data())
+			require.NoError(t, err)
+			assert.JSONEq(t, string(data), w.Body.String())
 			assert.Equal(t, fErr.CodeHTTP(), w.Code)
 		})
 	}
