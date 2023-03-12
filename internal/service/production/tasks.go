@@ -77,6 +77,7 @@ func (s *Service) CreateTask(ctx context.Context, user uuid.UUID, req model.Task
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, service.ErrNotFound
 		}
+
 		return nil, service.ErrInternal.With(zap.Error(err))
 	}
 

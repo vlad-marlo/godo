@@ -146,6 +146,7 @@ WHERE t.id = $2 AND (tu.user_id = $1 OR t.created_by = $1 OR (uig.user_id = $1 A
 	return t, nil
 }
 
+// Create ...
 func (repo *TaskRepository) Create(ctx context.Context, task *model.Task) error {
 	if _, err := repo.pool.Exec(
 		ctx,
@@ -174,6 +175,7 @@ VALUES ($1, $2, $3, $4, $5, $6);`,
 	return nil
 }
 
+// AddToGroup ...
 func (repo *TaskRepository) AddToGroup(ctx context.Context, task, group uuid.UUID) error {
 	if _, err := repo.pool.Exec(ctx, `INSERT INTO task_group(task_id, group_id) VALUES ($1, $2);`, task, group); err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok {

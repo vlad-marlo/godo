@@ -24,13 +24,6 @@ type UserRepository interface {
 type GroupRepository interface {
 	// Create creates record about group if it does not exist.
 	Create(ctx context.Context, group *model.Group) error
-	// Exists returns existence of group with provided id.
-	//Exists(ctx context.Context, id string) (ok bool)
-
-	// AddTask create relation between task and group
-	AddTask(ctx context.Context, task, group string) error
-	// UserExists checks existence of user in group members.
-	UserExists(ctx context.Context, group, user string) (ok bool)
 	// GetByUser ...
 	GetByUser(ctx context.Context, user uuid.UUID) ([]*model.Group, error)
 	// GetRoleOfMember return role of member in group.
@@ -45,6 +38,7 @@ type TokenRepository interface {
 	Get(ctx context.Context, token string) (*model.Token, error)
 }
 
+// InviteRepository is accessor to storing invites.
 type InviteRepository interface {
 	// Create creates invite with provided data.
 	Create(ctx context.Context, invite uuid.UUID, r *model.Role, group uuid.UUID, uses int) error
@@ -54,7 +48,7 @@ type InviteRepository interface {
 	Use(ctx context.Context, invite uuid.UUID, user uuid.UUID) error
 }
 
-// TaskRepository ...
+// TaskRepository is accessor to storage of tasks.
 type TaskRepository interface {
 	// AllByGroupAndUser return all tasks that are related to group.
 	AllByGroupAndUser(ctx context.Context, group uuid.UUID, user uuid.UUID) ([]*model.Task, error)

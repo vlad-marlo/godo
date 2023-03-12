@@ -113,30 +113,6 @@ func (repo *GroupRepository) UserExists(ctx context.Context, group, user string)
 	return
 }
 
-// AddTask creates relation object between task and group.
-func (repo *GroupRepository) AddTask(ctx context.Context, task, group string) error {
-	if _, err := repo.pool.Exec(ctx, `INSERT INTO task_group(task_id, group_id) VALUES ($1, $2)`, task, group); err != nil {
-		pgErr, ok := err.(*pgconn.PgError)
-		if !ok {
-			return Unknown(err)
-		}
-
-		switch pgErr.Code {
-
-		case pgerrcode.UniqueViolation:
-			return store.ErrTaskAlreadyExists
-
-		case pgerrcode.ForeignKeyViolation, pgerrcode.InvalidForeignKey:
-			return store.ErrBadData
-		}
-
-		repo.log.Log(_unknownLevel, "add task to group", TraceError(err)...)
-		return Unknown(err)
-	}
-
-	return nil
-}
-
 // GetRoleOfMember return role of user in provided group.
 func (repo *GroupRepository) GetRoleOfMember(ctx context.Context, user, group uuid.UUID) (role *model.Role, err error) {
 	role = new(model.Role)

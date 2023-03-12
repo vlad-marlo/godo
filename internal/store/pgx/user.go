@@ -3,7 +3,6 @@ package pgx
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
@@ -51,8 +50,8 @@ func (repo *UserRepository) Create(
 				return store.ErrUserAlreadyExists
 			}
 		}
-		repo.log.Warn("unknown error while creating new user", TraceError(err)...)
-		return fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
+		//repo.log.Warn("unknown error while creating new user", TraceError(err)...)
+		return Unknown(err)
 	}
 
 	return nil
@@ -108,4 +107,41 @@ func (repo *UserRepository) Get(ctx context.Context, id uuid.UUID) (u *model.Use
 		return nil, Unknown(err)
 	}
 	return u, nil
+}
+
+// AddToGroup ...
+func (repo *UserRepository) AddToGroup(ctx context.Context, user, group uuid.UUID, r *model.Role, isAdmin bool) error {
+	if _, err := repo.pool.Exec(
+		ctx,
+		`INSERT INTO user_in_group(user_id, group_id, is_admin, role_id)
+SELECT $1, $2, $3, r.id
+FROM roles r
+WHERE r.members = $4
+  AND r.tasks = $5
+  AND r.reviews = $6
+  AND r.comments = $7;`,
+		user,
+		group,
+		isAdmin,
+		r.Members,
+		r.Tasks,
+		r.Reviews,
+		r.Comments,
+	); err != nil {
+
+		if pgErr, ok := err.(*pgconn.PgError); ok {
+			switch pgErr.Code {
+
+			case pgerrcode.UniqueViolation:
+				return store.ErrUniqueViolation
+
+			case pgerrcode.ForeignKeyViolation, pgerrcode.InvalidForeignKey:
+				return store.ErrFKViolation
+			}
+		}
+
+		return Unknown(err)
+	}
+
+	return nil
 }

@@ -1027,3 +1027,114 @@ func TestServer_AllTasks_Errors(t *testing.T) {
 		})
 	}
 }
+
+func TestServer_CreateTask_Positive(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	srv := mocks.NewMockInterface(ctrl)
+
+	req := model.TaskCreateRequest{
+		Name:        uuid.NewString(),
+		Description: uuid.NewString(),
+		Users:       []uuid.UUID{uuid.New(), uuid.New(), uuid.New()},
+		Group:       uuid.New(),
+	}
+
+	task := &model.Task{
+		ID:          uuid.New(),
+		Name:        req.Name,
+		Description: req.Description,
+		CreatedAt:   time.Now(),
+		CreatedBy:   uuid.Nil,
+		Created:     0,
+		Status:      "NEW",
+	}
+
+	srv.EXPECT().CreateTask(gomock.Any(), uuid.Nil, req).Return(task, nil)
+
+	s := TestServer(t, srv)
+
+	body, err := json.Marshal(req)
+	require.NoError(t, err)
+	r := httptest.NewRequest("", "/", bytes.NewReader(body))
+	defer assert.NoError(t, r.Body.Close())
+	w := httptest.NewRecorder()
+
+	s.CreateTask(w, r)
+	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
+
+	var exp []byte
+	exp, err = json.Marshal(task)
+	require.NoError(t, err)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.JSONEq(t, string(exp), w.Body.String())
+}
+
+func TestServer_CreateTask_BadRequest(t *testing.T) {
+	s := TestServer(t, nil)
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("", "/", nil)
+	defer assert.NoError(t, r.Body.Close())
+
+	s.CreateTask(w, r)
+
+	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestServer_CreateTask_BadErr(t *testing.T) {
+	tt := []struct {
+		name string
+		err  error
+	}{
+		{"unknown error", errors.New("")},
+		{"field error: conflict", fielderr.New("some msg", map[string]string{"some": "data"}, fielderr.CodeConflict)},
+		{"field error: internal", fielderr.New("some msg", "some text", fielderr.CodeInternal)},
+		{"field error: forbidden", fielderr.New("some msg", config.New(), fielderr.CodeForbidden)},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			srv := mocks.NewMockInterface(ctrl)
+
+			req := model.TaskCreateRequest{
+				Name:        uuid.NewString(),
+				Description: uuid.NewString(),
+				Users:       []uuid.UUID{uuid.New(), uuid.New(), uuid.New()},
+				Group:       uuid.New(),
+			}
+
+			srv.EXPECT().CreateTask(gomock.Any(), uuid.Nil, req).Return(nil, tc.err)
+
+			s := TestServer(t, srv)
+
+			body, err := json.Marshal(req)
+			require.NoError(t, err)
+
+			r := httptest.NewRequest("", "/", bytes.NewReader(body))
+			defer assert.NoError(t, r.Body.Close())
+			w := httptest.NewRecorder()
+
+			s.CreateTask(w, r)
+
+			fErr, ok := tc.err.(*fielderr.Error)
+			if !ok {
+				assert.Equal(t, http.StatusInternalServerError, w.Code)
+				return
+			}
+			data := fErr.Data()
+			if data == nil {
+				data = http.StatusText(fErr.CodeHTTP())
+			}
+			body, err = json.Marshal(data)
+			require.NoError(t, err)
+			assert.Equal(t, fErr.CodeHTTP(), w.Code)
+			assert.JSONEq(t, string(body), w.Body.String())
+		})
+	}
+}
