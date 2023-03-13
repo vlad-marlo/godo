@@ -11,6 +11,7 @@ import (
 	"time"
 )
 
+// GetUserTasks return tasks related to user with provided id.
 func (s *Service) GetUserTasks(ctx context.Context, user uuid.UUID) (*model.GetTasksResponse, error) {
 	tasks, err := s.store.Task().AllByUser(ctx, user)
 	if err != nil {
@@ -59,7 +60,31 @@ func (s *Service) addTaskToGroup(ctx context.Context, user, task, group uuid.UUI
 
 func (s *Service) addToUsers(ctx context.Context, user, task uuid.UUID, users []uuid.UUID) {
 	for p, u := range users {
-		go s.addTaskToUser(ctx, user, task, u, p)
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			go s.addTaskToUser(ctx, user, task, u, p)
+		}
+	}
+}
+
+func (s *Service) addToGroupUsers(ctx context.Context, group, task uuid.UUID) {
+	ids, err := s.store.Group().GetUserIDs(ctx, group)
+	if err != nil {
+		s.log.Error("service: add to group users: store: group: get user ids", zap.Error(err))
+		return
+	}
+
+	for p, u := range ids {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			if err = s.store.Task().ForceAddToUser(ctx, u, task); err != nil {
+				s.log.Error("add task to user", zap.Error(err), zap.Int("pool", p))
+			}
+		}
 	}
 }
 
@@ -73,17 +98,30 @@ func (s *Service) CreateTask(ctx context.Context, user uuid.UUID, req model.Task
 		CreatedBy:   user,
 		Status:      "NEW",
 	}
-	if err := s.store.Task().Create(ctx, task); err != nil {
-		if errors.Is(err, store.ErrNotFound) {
-			return nil, service.ErrNotFound
-		}
 
+	if err := s.store.Task().Create(ctx, task); err != nil {
+		switch {
+		case errors.Is(err, store.ErrUniqueViolation):
+			return nil, service.ErrTaskAlreadyExists
+
+		case errors.Is(err, store.ErrFKViolation):
+			return nil, service.ErrBadData
+
+		default:
+		}
 		return nil, service.ErrInternal.With(zap.Error(err))
 	}
 
 	// async add task to group and users
-	go s.addTaskToGroup(ctx, user, task.ID, req.Group)
-	go s.addToUsers(ctx, user, task.ID, req.Users)
+	if req.Group != nil {
+		go s.addTaskToGroup(ctx, user, task.ID, *req.Group)
+		if req.Users == nil {
+			go s.addToGroupUsers(ctx, *req.Group, task.ID)
+		}
+	}
+	if req.Users != nil {
+		go s.addToUsers(ctx, user, task.ID, req.Users)
+	}
 
 	return task, nil
 }

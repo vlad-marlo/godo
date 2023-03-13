@@ -162,6 +162,21 @@ func (mr *MockGroupRepositoryMockRecorder) GetRoleOfMember(ctx, user, group inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRoleOfMember", reflect.TypeOf((*MockGroupRepository)(nil).GetRoleOfMember), ctx, user, group)
 }
 
+// GetUserIDs mocks base method.
+func (m *MockGroupRepository) GetUserIDs(ctx context.Context, group uuid.UUID) ([]uuid.UUID, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserIDs", ctx, group)
+	ret0, _ := ret[0].([]uuid.UUID)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserIDs indicates an expected call of GetUserIDs.
+func (mr *MockGroupRepositoryMockRecorder) GetUserIDs(ctx, group interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserIDs", reflect.TypeOf((*MockGroupRepository)(nil).GetUserIDs), ctx, group)
+}
+
 // MockTokenRepository is a mock of TokenRepository interface.
 type MockTokenRepository struct {
 	ctrl     *gomock.Controller
@@ -372,6 +387,20 @@ func (m *MockTaskRepository) Create(ctx context.Context, task *model.Task) error
 func (mr *MockTaskRepositoryMockRecorder) Create(ctx, task interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockTaskRepository)(nil).Create), ctx, task)
+}
+
+// ForceAddToUser mocks base method.
+func (m *MockTaskRepository) ForceAddToUser(ctx context.Context, user, task uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ForceAddToUser", ctx, user, task)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ForceAddToUser indicates an expected call of ForceAddToUser.
+func (mr *MockTaskRepositoryMockRecorder) ForceAddToUser(ctx, user, task interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ForceAddToUser", reflect.TypeOf((*MockTaskRepository)(nil).ForceAddToUser), ctx, user, task)
 }
 
 // GetByUserAndID mocks base method.

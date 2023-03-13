@@ -13,20 +13,32 @@ func TestInviteRepository_Create(t *testing.T) {
 	ctx := context.Background()
 	st, td := testStore(t, nil)
 	defer td()
-	err := st.invite.Create(context.Background(), TestInvite1, TestRole1, TestGroup1.ID, 1)
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, store.ErrFKViolation)
+	err := st.invite.Create(ctx, TestInvite1, TestRole1, TestGroup1.ID, 1)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrFKViolation)
+	}
 
 	require.NoError(t, st.user.Create(ctx, TestUser1))
 	require.NoError(t, st.group.Create(ctx, TestGroup1))
 
-	require.NoError(t, st.invite.Create(context.Background(), TestInvite1, TestRole1, TestGroup1.ID, 1))
+	require.NoError(t, st.invite.Create(ctx, TestInvite1, TestRole1, TestGroup1.ID, 1))
 	err = st.invite.Create(ctx, TestInvite1, TestRole1, TestGroup1.ID, 1)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, store.ErrUniqueViolation)
 	err = st.invite.Create(ctx, TestInvite2, TestRole1, TestGroup1.ID, -1)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, store.ErrBadData)
+}
+
+func TestInviteRepository_Create_NilReference(t *testing.T) {
+	ctx := context.Background()
+	st, td := testStore(t, nil)
+	defer td()
+
+	err := st.invite.Create(ctx, TestInvite1, nil, TestGroup1.ID, 1)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrNilReference)
+	}
 }
 
 func TestInviteRepository_Exists(t *testing.T) {

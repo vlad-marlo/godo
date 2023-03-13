@@ -41,6 +41,18 @@ func TestGroupRepository_Create_Positive(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestGroupRepository_Create_NilReference(t *testing.T) {
+	s, td := testStore(t, nil)
+	defer td()
+
+	ctx := context.Background()
+
+	err := s.group.Create(ctx, nil)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrNilReference)
+	}
+}
+
 func TestGroupRepository_Create_AlreadyExists(t *testing.T) {
 	grp, usr, td := testGroupUser(t)
 	defer td()

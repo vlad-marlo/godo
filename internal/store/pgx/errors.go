@@ -1,7 +1,9 @@
 package pgx
 
 import (
+	"errors"
 	"fmt"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vlad-marlo/godo/internal/store"
 	"go.uber.org/zap"
@@ -11,10 +13,11 @@ import (
 //
 // If error is not Pg then will return just zap.Error field with error in it.
 func TraceError(err error) []zap.Field {
-	pgErr, ok := err.(*pgconn.PgError)
-	if !ok {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
 		return []zap.Field{zap.Error(err)}
 	}
+
 	fields := []zap.Field{
 		zap.String("code", pgErr.Code),
 		zap.String("message", pgErr.Message),
@@ -28,7 +31,7 @@ func TraceError(err error) []zap.Field {
 	}
 	switch pgErr.Severity {
 	case "PANIC":
-		zap.L().Panic("unknown error", fields...)
+		zap.L().DPanic("unknown error", fields...)
 	default:
 	}
 	return fields
@@ -37,4 +40,19 @@ func TraceError(err error) []zap.Field {
 // Unknown wraps store.ErrUnknown with provided error.
 func Unknown(err error) error {
 	return fmt.Errorf("%w: %s", store.ErrUnknown, err.Error())
+}
+
+func pgError(msg string, err error) error {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		switch pgErr.Code {
+		case pgerrcode.UniqueViolation:
+			return store.ErrUniqueViolation
+		case pgerrcode.ForeignKeyViolation, pgerrcode.InvalidForeignKey:
+			return store.ErrFKViolation
+		}
+	}
+	zap.L().Log(_unknownLevel, msg, TraceError(err)...)
+
+	return Unknown(err)
 }

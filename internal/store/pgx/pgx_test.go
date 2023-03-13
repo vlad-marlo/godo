@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -86,38 +87,54 @@ func TestBadCli(t *testing.T) {
 	assert.False(t, st.user.Exists(ctx, "sd"))
 	group, err := st.group.Get(context.Background(), TestGroup1.ID)
 	assert.Nil(t, group)
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, store.ErrUnknown)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUnknown)
+	}
 
 	err = st.group.Create(context.Background(), TestGroup1)
-	require.Error(t, err)
-	assert.ErrorIs(t, err, store.ErrUnknown)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUnknown)
+	}
 
 	err = st.invite.Create(context.Background(), TestInvite1, TestRole1, TestGroup1.ID, 1)
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, store.ErrUnknown)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUnknown)
+	}
 
 	require.False(t, st.invite.Exists(context.Background(), TestInvite1, TestGroup1.ID))
 
 	var u *model.User
 	u, err = st.user.GetByEmail(context.Background(), "xd")
 	assert.Nil(t, u)
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, store.ErrUnknown)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUnknown)
+	}
 
 	u, err = st.user.Get(context.Background(), uuid.Nil)
 	assert.Nil(t, u)
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, store.ErrUnknown)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUnknown)
+	}
 
 	err = st.user.Create(context.Background(), new(model.User))
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, store.ErrUnknown)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUnknown)
+	}
 
 	var token *model.Token
 	token, err = st.token.Get(ctx, TestToken1.Token)
 	assert.Nil(t, token)
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, store.ErrUnknown)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUnknown)
+	}
 
+	err = st.task.Create(ctx, &model.Task{
+		ID:          uuid.New(),
+		Name:        uuid.NewString(),
+		Description: uuid.NewString(),
+		CreatedAt:   time.Now(),
+		CreatedBy:   TestUser1.ID,
+		Status:      "new",
+	})
+	assert.Error(t, err)
 }

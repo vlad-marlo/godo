@@ -28,6 +28,7 @@ type GroupRepository interface {
 	GetByUser(ctx context.Context, user uuid.UUID) ([]*model.Group, error)
 	// GetRoleOfMember return role of member in group.
 	GetRoleOfMember(ctx context.Context, user, group uuid.UUID) (role *model.Role, err error)
+	GetUserIDs(ctx context.Context, group uuid.UUID) ([]uuid.UUID, error)
 }
 
 // TokenRepository is accessor to storing tokens.
@@ -58,8 +59,10 @@ type TaskRepository interface {
 	GetByUserAndID(ctx context.Context, user, task uuid.UUID) (*model.Task, error)
 	// Create creates record about task.
 	Create(ctx context.Context, task *model.Task) error
-	// AddToUser ...
+	// AddToUser add task to user with check that user has permission to do this.
 	AddToUser(ctx context.Context, from, task, to uuid.UUID) error
+	// ForceAddToUser add task to user without any checks.
+	ForceAddToUser(ctx context.Context, user, task uuid.UUID) error
 	// AddToGroup ...
 	AddToGroup(ctx context.Context, task, group uuid.UUID) error
 }

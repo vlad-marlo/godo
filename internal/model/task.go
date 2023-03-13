@@ -27,7 +27,7 @@ type (
 		// If not defined, will create task only for user, who creates this task or for group.
 		Users []uuid.UUID `json:"users"`
 		// Group - optional filed that show group to which task will be related.
-		Group uuid.UUID `json:"group"`
+		Group *uuid.UUID `json:"group"`
 	}
 	// GetTasksResponse ...
 	GetTasksResponse struct {

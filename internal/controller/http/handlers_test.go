@@ -1032,11 +1032,12 @@ func TestServer_CreateTask_Positive(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	srv := mocks.NewMockInterface(ctrl)
 
+	grpID := uuid.New()
 	req := model.TaskCreateRequest{
 		Name:        uuid.NewString(),
 		Description: uuid.NewString(),
 		Users:       []uuid.UUID{uuid.New(), uuid.New(), uuid.New()},
-		Group:       uuid.New(),
+		Group:       &grpID,
 	}
 
 	task := &model.Task{
@@ -1101,11 +1102,12 @@ func TestServer_CreateTask_BadErr(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			srv := mocks.NewMockInterface(ctrl)
 
+			grpID := uuid.New()
 			req := model.TaskCreateRequest{
 				Name:        uuid.NewString(),
 				Description: uuid.NewString(),
 				Users:       []uuid.UUID{uuid.New(), uuid.New(), uuid.New()},
-				Group:       uuid.New(),
+				Group:       &grpID,
 			}
 
 			srv.EXPECT().CreateTask(gomock.Any(), uuid.Nil, req).Return(nil, tc.err)

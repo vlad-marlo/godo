@@ -17,7 +17,14 @@ func TestTokenRepository_Create(t *testing.T) {
 	require.NoError(t, srv.User().Create(ctx, TestUser1))
 	require.NoError(t, srv.Token().Create(ctx, TestToken1))
 	// token already exists
-	require.Error(t, srv.Token().Create(ctx, TestToken1))
+	err := srv.token.Create(ctx, TestToken1)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrTokenAlreadyExists)
+	}
+	err = srv.token.Create(ctx, nil)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrNilReference)
+	}
 }
 
 func TestTokenRepository_GetUser(t *testing.T) {

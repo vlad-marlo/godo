@@ -36,6 +36,10 @@ func NewGroupRepository(cli Client) *GroupRepository {
 // store.ErrGroupAlreadyExists	group with provided ID/Name already exists;
 // store.ErrBadData bad foreign key to create group;
 func (repo *GroupRepository) Create(ctx context.Context, group *model.Group) error {
+	if group == nil {
+		return store.ErrNilReference
+	}
+
 	tx, err := repo.pool.Begin(ctx)
 	if err != nil {
 		repo.log.Error("failed to begin transaction: check pgx driver", TraceError(err)...)
@@ -200,4 +204,45 @@ func (repo *GroupRepository) Get(ctx context.Context, id uuid.UUID) (*model.Grou
 	}
 	return g, nil
 
+}
+
+// GetUserIDs ...
+func (repo *GroupRepository) GetUserIDs(ctx context.Context, group uuid.UUID) (ids []uuid.UUID, err error) {
+	var rows pgx.Rows
+	rows, err = repo.pool.Query(ctx, `SELECT uig.user_id FROM user_in_group uig WHERE uig.group_id = $1;`, group)
+	if err != nil {
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return nil, store.ErrNotFound
+		}
+		repo.log.Log(_unknownLevel, "groups: get users", TraceError(err)...)
+		return nil, Unknown(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var id uuid.UUID
+		if err = rows.Scan(&id); err != nil {
+			repo.log.Log(_unknownLevel, "groups: get users: scan", TraceError(err)...)
+			return nil, Unknown(err)
+		}
+		ids = append(ids, id)
+	}
+
+	if err = rows.Err(); err != nil {
+		repo.log.Log(_unknownLevel, "groups: get users: rows err", TraceError(err)...)
+		return nil, Unknown(err)
+	}
+
+	return ids, nil
+}
+
+func (repo *GroupRepository) TaskExists(ctx context.Context, group, task uuid.UUID) (ok bool) {
+	_ = repo.pool.QueryRow(
+		ctx,
+		`SELECT EXISTS(SELECT * FROM task_group tg WHERE tg.group_id = $1 AND tg.task_id = $2);`,
+		group,
+		task,
+	).Scan(&ok)
+	return
 }

@@ -96,4 +96,5 @@ var (
 	ErrBadInviteLimit = fielderr.New("bad limit", map[string]string{
 		"limit": "limit must be not null positive integer number",
 	}, fielderr.CodeBadRequest)
+	ErrTaskAlreadyExists = fielderr.New("unique violation", "task already exists", fielderr.CodeConflict)
 )

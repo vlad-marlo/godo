@@ -35,7 +35,7 @@ func (repo *UserRepository) Create(
 	u *model.User,
 ) error {
 	if u == nil {
-		return store.ErrBadData
+		return store.ErrNilReference
 	}
 
 	if _, err := repo.pool.Exec(

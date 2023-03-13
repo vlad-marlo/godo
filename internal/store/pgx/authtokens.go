@@ -31,6 +31,9 @@ func NewTokenRepository(cli Client) *TokenRepository {
 
 // Create stores token to vault.
 func (repo *TokenRepository) Create(ctx context.Context, token *model.Token) error {
+	if token == nil {
+		return store.ErrNilReference
+	}
 	if _, err := repo.pool.Exec(
 		ctx,
 		`INSERT INTO auth_tokens(user_id, token, expires_at, expires) VALUES ($1, $2, $3, $4);`,

@@ -14,4 +14,6 @@ var (
 	ErrInviteIsAlreadyUsed = errors.New("invite was already used")
 	ErrUniqueViolation     = errors.New("unique violation")
 	ErrFKViolation         = errors.New("foreign key violation")
+	ErrNilReference        = errors.New("nil reference")
+	ErrNotAuthorized       = errors.New("has no permission")
 )

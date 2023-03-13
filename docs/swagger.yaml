@@ -50,27 +50,66 @@ definitions:
   model.CreateInviteResponse:
     properties:
       invite-link:
+        description: Link is invite link to group.
         example: http://localhost:8080/api/v1/groups/00000000-0000-0000-0000-000000000000/apply?invite=00000000-0000-0000-0000-000000000000
         type: string
       limit:
+        description: Limit is count of avaliable usages of invite link.
         example: 2
         type: integer
     type: object
   model.CreateInviteViaGroupRequest:
     properties:
       comments-permission:
+        description: |-
+          Comment is role of user.
+
+          Permissions:
+          0 - read related;
+          1 - read all;
+          2 - create;
+          3 - update/delete related;
+          4 - update/delete any;
         example: 4
         type: integer
       limit:
+        description: Limit is count of avaliable usages of invite link
         example: 2
         type: integer
       members-permission:
+        description: |-
+          Member is role of user.
+
+          There are permissions:
+          0 - user can affect(read/update) only related objects;
+          1 - user can read all object.
+          2 - user can create new objects (invite users);
+          3 - user can change/delete users who was invited by whose;
+          4 - user can affect all users.
         example: 4
         type: integer
       reviews-permission:
+        description: |-
+          Review is role of user.
+
+          Permissions:
+          0 - read related;
+          1 - read all;
+          2 - create;
+          3 - update/delete related;
+          4 - update/delete any;
         example: 4
         type: integer
       tasks-permission:
+        description: |-
+          Task is role of user.
+
+          Permissions:
+          0 - read related;
+          1 - read all;
+          2 create;
+          3 - update/delete related;
+          4 - delete all;
         example: 4
         type: integer
     type: object
@@ -150,8 +189,6 @@ definitions:
     type: object
   model.Task:
     properties:
-      created-at:
-        type: integer
       created-by:
         type: string
       description:

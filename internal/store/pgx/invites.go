@@ -30,6 +30,10 @@ func NewInviteRepository(cli Client) *InviteRepository {
 
 // Create stores invite with provided data.
 func (repo *InviteRepository) Create(ctx context.Context, invite uuid.UUID, r *model.Role, group uuid.UUID, uses int) error {
+	if r == nil {
+		return store.ErrNilReference
+	}
+
 	if _, err := repo.pool.Exec(
 		ctx,
 		`INSERT INTO roles(members, tasks, reviews, "comments")

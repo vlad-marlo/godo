@@ -37,7 +37,7 @@ func TestUserRepository_Create(t *testing.T) {
 		{
 			name:    "negative: nil user",
 			u:       nil,
-			wantErr: store.ErrBadData,
+			wantErr: store.ErrNilReference,
 		},
 	}
 
