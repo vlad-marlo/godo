@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -28,6 +29,7 @@ func NewTokenRepository(cli Client) *TokenRepository {
 	}
 }
 
+// Create stores token to vault.
 func (repo *TokenRepository) Create(ctx context.Context, token *model.Token) error {
 	if _, err := repo.pool.Exec(
 		ctx,

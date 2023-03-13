@@ -21,7 +21,6 @@ func TestTask_MarshalJSON(t *testing.T) {
 		Description: "description",
 		CreatedAt:   time.Now(),
 		CreatedBy:   uuid.New(),
-		Created:     0,
 		Status:      "NEW",
 	}
 	task.CreatedAt = task.CreatedAt.Round(time.Second)

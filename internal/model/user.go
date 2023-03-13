@@ -15,6 +15,7 @@ type (
 		Pass string `json:"-"`
 	}
 
+	// UserInGroup represents user in group object.
 	UserInGroup struct {
 		UserID  uuid.UUID
 		Email   string

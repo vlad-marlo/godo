@@ -447,6 +447,7 @@ func TestServer_CreateInviteLink_BadData(t *testing.T) {
 	defer assert.NoError(t, r.Body.Close())
 	s.CreateInviteLink(w, r)
 	res := w.Result()
+	defer assert.NoError(t, res.Body.Close())
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
 
@@ -802,8 +803,8 @@ func TestServer_UserMe_Positive(t *testing.T) {
 				"group #1",
 				"description",
 				[]*model.Task{
-					{uuid.New(), "task", "description", time.Now(), u, time.Now().Unix(), "NEW"},
-					{uuid.New(), "other task", "other description", time.Now(), u, time.Now().Unix(), "NEW"},
+					{uuid.New(), "task", "description", time.Now(), u, "NEW"},
+					{uuid.New(), "other task", "other description", time.Now(), u, "NEW"},
 				},
 			},
 			{uuid.New(), "group #2", "other desc", nil},
@@ -877,7 +878,6 @@ func TestServer_GetTask_MainPositive(t *testing.T) {
 		Description: "task desc",
 		CreatedAt:   time.Now(),
 		CreatedBy:   uuid.Nil,
-		Created:     0,
 		Status:      "NEW",
 	}
 	srv.EXPECT().GetTask(gomock.Any(), gomock.Any(), gomock.Any()).Return(resp, nil)
@@ -961,11 +961,11 @@ func TestServer_AllTasks_Positive(t *testing.T) {
 	resp := &model.GetTasksResponse{
 		Count: 5,
 		Tasks: []*model.Task{
-			{uuid.New(), uuid.NewString(), uuid.NewString(), time.Now(), uuid.New(), 0, uuid.NewString()},
-			{uuid.New(), uuid.NewString(), uuid.NewString(), time.Now(), uuid.New(), 0, uuid.NewString()},
-			{uuid.New(), uuid.NewString(), uuid.NewString(), time.Now(), uuid.New(), 0, uuid.NewString()},
-			{uuid.New(), uuid.NewString(), uuid.NewString(), time.Now(), uuid.New(), 0, uuid.NewString()},
-			{uuid.New(), uuid.NewString(), uuid.NewString(), time.Now(), uuid.New(), 0, uuid.NewString()},
+			{uuid.New(), uuid.NewString(), uuid.NewString(), time.Now(), uuid.New(), uuid.NewString()},
+			{uuid.New(), uuid.NewString(), uuid.NewString(), time.Now(), uuid.New(), uuid.NewString()},
+			{uuid.New(), uuid.NewString(), uuid.NewString(), time.Now(), uuid.New(), uuid.NewString()},
+			{uuid.New(), uuid.NewString(), uuid.NewString(), time.Now(), uuid.New(), uuid.NewString()},
+			{uuid.New(), uuid.NewString(), uuid.NewString(), time.Now(), uuid.New(), uuid.NewString()},
 		},
 	}
 	srv.EXPECT().GetUserTasks(gomock.Any(), uuid.Nil).Return(resp, nil)
@@ -1045,7 +1045,6 @@ func TestServer_CreateTask_Positive(t *testing.T) {
 		Description: req.Description,
 		CreatedAt:   time.Now(),
 		CreatedBy:   uuid.Nil,
-		Created:     0,
 		Status:      "NEW",
 	}
 

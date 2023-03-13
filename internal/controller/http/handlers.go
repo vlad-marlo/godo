@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	mw "github.com/vlad-marlo/godo/internal/controller/http/middleware"
 	"github.com/vlad-marlo/godo/internal/model"
-	"github.com/vlad-marlo/godo/internal/pkg/fielderr"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
@@ -55,12 +54,7 @@ func (s *Server) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	u, err := s.srv.RegisterUser(r.Context(), req.Email, req.Password)
 	if err != nil {
-		if fieldErr, ok := err.(*fielderr.Error); ok {
-			s.respond(w, fieldErr.CodeHTTP(), fieldErr.Data(), ReqIDField(reqID))
-			return
-		}
-
-		s.respond(w, http.StatusInternalServerError, nil, zap.Error(err), ReqIDField(reqID))
+		s.handleErr(w, err, ReqIDField(reqID))
 		return
 	}
 
@@ -98,14 +92,10 @@ func (s *Server) CreateToken(w http.ResponseWriter, r *http.Request) {
 
 	u, err := s.srv.CreateToken(r.Context(), req.Email, req.Password, req.TokenType)
 	if err != nil {
-		if fdErr, ok := err.(*fielderr.Error); ok {
-			s.respond(w, fdErr.CodeHTTP(), fdErr.Data(), ReqIDField(reqID), zap.Error(fdErr))
-			return
-		}
-
-		s.respond(w, http.StatusInternalServerError, nil, zap.Error(err), ReqIDField(reqID))
+		s.handleErr(w, err, zap.Error(err), ReqIDField(reqID))
 		return
 	}
+
 	s.respond(w, http.StatusCreated, u)
 }
 
@@ -122,13 +112,7 @@ func (s *Server) CreateToken(w http.ResponseWriter, r *http.Request) {
 func (s *Server) Ping(w http.ResponseWriter, r *http.Request) {
 	reqID := middleware.GetReqID(r.Context())
 	if err := s.srv.Ping(r.Context()); err != nil {
-
-		if fErr, ok := err.(*fielderr.Error); ok {
-			s.respond(w, fErr.CodeHTTP(), fErr.Data(), zap.Error(err), ReqIDField(reqID))
-			return
-		}
-
-		s.respond(w, http.StatusInternalServerError, nil, zap.Error(err), ReqIDField(reqID))
+		s.handleErr(w, err, ReqIDField(reqID))
 		return
 	}
 
@@ -171,16 +155,10 @@ func (s *Server) CreateGroup(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.srv.CreateGroup(ctx, user, req.Name, req.Description)
 	if err != nil {
-
-		fErr, ok := err.(*fielderr.Error)
-		if !ok {
-			s.respond(w, http.StatusInternalServerError, nil, zap.Error(err), ReqIDField(reqID))
-			return
-		}
-
-		s.respond(w, fErr.CodeHTTP(), fErr.Data(), append(fErr.Fields(), ReqIDField(reqID))...)
+		s.handleErr(w, err, ReqIDField(reqID))
 		return
 	}
+
 	s.respond(w, http.StatusCreated, resp, ReqIDField(reqID))
 }
 
@@ -227,13 +205,7 @@ func (s *Server) CreateInviteLink(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.srv.CreateInvite(r.Context(), u, req.Group, role, req.Limit)
 	if err != nil {
-
-		if fErr, ok := err.(*fielderr.Error); ok {
-			s.respond(w, fErr.CodeHTTP(), fErr.Data(), append(fErr.Fields(), ReqIDField(reqID))...)
-			return
-		}
-
-		s.respond(w, http.StatusInternalServerError, nil, zap.Error(err), ReqIDField(reqID))
+		s.handleErr(w, err, ReqIDField(reqID))
 		return
 	}
 
@@ -292,12 +264,7 @@ func (s *Server) CreateInviteViaGroup(w http.ResponseWriter, r *http.Request) {
 	var resp *model.CreateInviteResponse
 	resp, err = s.srv.CreateInvite(r.Context(), u, group, role, req.Limit)
 	if err != nil {
-		if fErr, ok := err.(*fielderr.Error); ok {
-			s.respond(w, fErr.CodeHTTP(), fErr.Data(), append(fErr.Fields(), ReqIDField(reqID))...)
-			return
-		}
-
-		s.respond(w, http.StatusInternalServerError, nil, zap.Error(err), ReqIDField(reqID))
+		s.handleErr(w, err, ReqIDField(reqID))
 		return
 	}
 
@@ -343,13 +310,7 @@ func (s *Server) UseInvite(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = s.srv.UseInvite(r.Context(), user, group, invite); err != nil {
-
-		if fErr, ok := err.(*fielderr.Error); ok {
-			s.respond(w, fErr.CodeHTTP(), fErr.Data(), append(fErr.Fields(), reqID)...)
-			return
-		}
-
-		s.internal(w, reqID, zap.Error(err))
+		s.handleErr(w, err, reqID)
 		return
 	}
 
@@ -376,13 +337,7 @@ func (s *Server) UserMe(w http.ResponseWriter, r *http.Request) {
 	u := mw.UserFromCtx(r.Context())
 	resp, err := s.srv.GetMe(r.Context(), u)
 	if err != nil {
-
-		if fErr, ok := err.(*fielderr.Error); ok {
-			s.respond(w, fErr.CodeHTTP(), fErr.Data(), append(fErr.Fields(), reqID)...)
-			return
-		}
-
-		s.internal(w, reqID, zap.Error(err))
+		s.handleErr(w, err, reqID)
 		return
 	}
 
@@ -410,11 +365,7 @@ func (s *Server) AllTasks(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.srv.GetUserTasks(r.Context(), u)
 	if err != nil {
-		if fErr, ok := err.(*fielderr.Error); ok {
-			s.respond(w, fErr.CodeHTTP(), fErr.Data(), append(fErr.Fields(), reqID)...)
-			return
-		}
-		s.internal(w, zap.Error(err), reqID)
+		s.handleErr(w, err, reqID)
 		return
 	}
 
@@ -450,13 +401,7 @@ func (s *Server) GetTask(w http.ResponseWriter, r *http.Request) {
 	var resp *model.Task
 	resp, err = s.srv.GetTask(r.Context(), u, g)
 	if err != nil {
-
-		if fErr, ok := err.(*fielderr.Error); ok {
-			s.respond(w, fErr.CodeHTTP(), fErr.Data(), append(fErr.Fields(), reqID)...)
-			return
-		}
-
-		s.respond(w, http.StatusInternalServerError, nil, reqID, zap.Error(err))
+		s.handleErr(w, err, reqID)
 		return
 	}
 
@@ -502,12 +447,7 @@ func (s *Server) CreateTask(w http.ResponseWriter, r *http.Request) {
 	resp, err := s.srv.CreateTask(r.Context(), u, req)
 	if err != nil {
 
-		if fErr, ok := err.(*fielderr.Error); ok {
-			s.respond(w, fErr.CodeHTTP(), fErr.Data(), append(fErr.Fields(), reqID)...)
-			return
-		}
-
-		s.internal(w, zap.Error(err), reqID)
+		s.handleErr(w, err, reqID)
 		return
 	}
 

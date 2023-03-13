@@ -26,6 +26,7 @@ func (s *Service) GetUserTasks(ctx context.Context, user uuid.UUID) (*model.GetT
 	}, nil
 }
 
+// GetTask return task by user and task id.
 func (s *Service) GetTask(ctx context.Context, user, task uuid.UUID) (*model.Task, error) {
 	t, err := s.store.Task().GetByUserAndID(ctx, user, task)
 	if err != nil {
@@ -70,7 +71,6 @@ func (s *Service) CreateTask(ctx context.Context, user uuid.UUID, req model.Task
 		Description: req.Description,
 		CreatedAt:   time.Now(),
 		CreatedBy:   user,
-		Created:     0,
 		Status:      "NEW",
 	}
 	if err := s.store.Task().Create(ctx, task); err != nil {

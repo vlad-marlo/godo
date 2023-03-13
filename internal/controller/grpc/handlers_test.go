@@ -3,8 +3,9 @@ package grpc
 import (
 	"context"
 	"errors"
-	"github.com/vlad-marlo/godo/internal/service/mocks"
 	"testing"
+
+	"github.com/vlad-marlo/godo/internal/service/mocks"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -24,7 +25,13 @@ func TestServer_Ping_Positive(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestServer_Ping_Negative(t *testing.T) {
+func TestServer_Ping_Errors(t *testing.T) {
+	// tt := []struct {
+	// 	name string
+	// 	err  error
+	// }{
+	// 	{},
+	// }
 	ctrl := gomock.NewController(t)
 	srv := mocks.NewMockInterface(ctrl)
 	srv.EXPECT().Ping(gomock.Any()).Return(errUnknown)

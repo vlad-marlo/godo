@@ -11,7 +11,6 @@ var (
 	ErrNotFound            = errors.New("not found")
 	ErrUnknown             = errors.New("unknown error")
 	ErrTokenAlreadyExists  = errors.New("token already exists")
-	ErrTaskAlreadyExists   = errors.New("task already exists")
 	ErrInviteIsAlreadyUsed = errors.New("invite was already used")
 	ErrUniqueViolation     = errors.New("unique violation")
 	ErrFKViolation         = errors.New("foreign key violation")

@@ -6,17 +6,18 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/asaskevich/govalidator"
-	"github.com/caarlos0/env/v7"
-	"github.com/pelletier/go-toml/v2"
-	"github.com/vlad-marlo/godo/internal/model"
-	"go.uber.org/zap"
 	"log"
 	"os"
 	"path"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/asaskevich/govalidator"
+	"github.com/caarlos0/env/v7"
+	"github.com/pelletier/go-toml/v2"
+	"github.com/vlad-marlo/godo/internal/model"
+	"go.uber.org/zap"
 )
 
 type (
@@ -97,6 +98,7 @@ const (
 	defaultInviteTmp   = "%s/api/v1/groups/%s/apply?invite=%s"
 )
 
+// New creates new config once and return singleton object every time when called.
 func New() *Config {
 	once.Do(initConfig)
 	return c
@@ -132,10 +134,10 @@ func initConfig() {
 	flag.Parse()
 
 	c.Postgres.SetDatabaseURI()
-	switch c.Server.Type {
-	case "HTTP", "HTTPS", "https", "http":
+	switch strings.ToLower(c.Server.Type) {
+	case "https", "http":
 		c.Server.EnableHTTP = true
-	case "GRPC", "grpc":
+	case "grpc":
 		c.Server.EnableGRPC = true
 	}
 
@@ -173,14 +175,14 @@ func (c *Config) Valid() (ok bool, err error) {
 		return false, nil
 	}
 	ok, err = govalidator.ValidateStruct(c)
-	// validate that enabled
-	ok = ok && (c.Server.EnableGRPC != c.Server.EnableHTTP) && (c.Server.EnableHTTP || c.Server.EnableGRPC) && strings.Count("%s", c.Server.InviteLinkTemplate) != 3
+	// validate that only one HTTP or GRPC server is enabled
+	ok = ok && (c.Server.EnableGRPC != c.Server.EnableHTTP)
+	ok = ok && strings.Count("%s", c.Server.InviteLinkTemplate) != 3
 	return
 }
 
 // setDefaultVars add default values or generate it for config.
 func (c *Config) setDefaultVars() {
-
 	// configure secret key.
 	if c.Server.SecretKey == "" {
 		data, err := generateRandom(generatedTokenSize)
@@ -245,7 +247,9 @@ func generateRandom(size int) ([]byte, error) {
 	return b, nil
 }
 
-// ParseFromFile ...
+// ParseFromFile parses config from file.
+//
+// File path must be absolute.
 func (c *Config) ParseFromFile(file string) error {
 	f, err := os.Open(file)
 	if errors.Is(err, os.ErrNotExist) || errors.Is(err, os.ErrPermission) {
@@ -268,11 +272,11 @@ func (c *Config) ParseFromFile(file string) error {
 	return nil
 }
 
-// WriteToFile ...
+// WriteToFile writes config to file.
+//
+// File path must be absolute.
 func (c *Config) WriteToFile(file string) error {
-	_ = os.Remove(file)
-
-	f, err := os.Create(file)
+	f, err := os.OpenFile(file, os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		return fmt.Errorf("os: create: %w", err)
 	}

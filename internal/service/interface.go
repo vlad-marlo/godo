@@ -3,10 +3,12 @@ package service
 
 import (
 	"context"
+
 	"github.com/google/uuid"
 	"github.com/vlad-marlo/godo/internal/model"
 )
 
+// Interface is service global interface.
 type Interface interface {
 	// Ping checks access to server.
 	Ping(ctx context.Context) error

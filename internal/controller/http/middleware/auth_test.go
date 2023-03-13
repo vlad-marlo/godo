@@ -41,5 +41,5 @@ func TestRequestWithUser(t *testing.T) {
 }
 
 func TestResponse(t *testing.T) {
-	
+
 }

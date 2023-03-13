@@ -12,7 +12,7 @@ import (
 	"github.com/vlad-marlo/godo/pkg/proto/api/v1/pb"
 )
 
-// Ping ...
+// Ping docs.
 func (s *Server) Ping(ctx context.Context, _ *pb.PingRequest) (*pb.PingResponse, error) {
 	var resp pb.PingResponse
 	if err := s.srv.Ping(ctx); err != nil {
@@ -25,7 +25,7 @@ func (s *Server) Ping(ctx context.Context, _ *pb.PingRequest) (*pb.PingResponse,
 	return &resp, nil
 }
 
-// CreateUser ...
+// CreateUser docs.
 func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreateUserResponse, error) {
 	u, err := s.srv.RegisterUser(ctx, req.GetEmail(), req.GetPassword())
 	if err != nil {
@@ -40,7 +40,7 @@ func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb
 	}, nil
 }
 
-// CreateToken ...
+// CreateToken docs.
 func (s *Server) CreateToken(ctx context.Context, req *pb.CreateTokenRequest) (*pb.CreateTokenResponse, error) {
 	t, err := s.srv.CreateToken(ctx, req.GetEmail(), req.GetPassword(), req.GetTokenType())
 	if err != nil {
