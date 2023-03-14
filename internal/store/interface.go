@@ -42,7 +42,7 @@ type TokenRepository interface {
 // InviteRepository is accessor to storing invites.
 type InviteRepository interface {
 	// Create creates invite with provided data.
-	Create(ctx context.Context, invite uuid.UUID, r *model.Role, group uuid.UUID, uses int) error
+	Create(ctx context.Context, invite uuid.UUID, role int32, group uuid.UUID, uses int) error
 	// Exists checks existence valid invite with provided data.
 	Exists(ctx context.Context, invite, group uuid.UUID) bool
 	// Use decrements left uses of invite and adds user to group in tx.
@@ -67,6 +67,11 @@ type TaskRepository interface {
 	AddToGroup(ctx context.Context, task, group uuid.UUID) error
 }
 
+type RoleRepository interface {
+	Create(ctx context.Context, role *model.Role) error
+	Get(ctx context.Context, role *model.Role) error
+}
+
 // Store is composite object that does not include any storage function.
 //
 // Store is only accessor to different repositories.
@@ -79,6 +84,7 @@ type Store interface {
 	Token() TokenRepository
 	// Task is TaskRepository accessor.
 	Task() TaskRepository
+	Role() RoleRepository
 	// Invite is InviteRepository accessor.
 	Invite() InviteRepository
 	// Ping checks is Store working correctly.

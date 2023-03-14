@@ -85,7 +85,13 @@ func (s *Service) CreateInvite(ctx context.Context, user uuid.UUID, group uuid.U
 
 	invite := uuid.New()
 
-	if err = s.store.Invite().Create(ctx, invite, role, group, limit); err != nil {
+	s.store.Group()
+
+	if err = s.store.Role().Get(ctx, role); err != nil {
+		return nil, service.ErrInternal.With(zap.Error(err))
+	}
+
+	if err = s.store.Invite().Create(ctx, invite, role.ID, group, limit); err != nil {
 
 		switch errors.Unwrap(err) {
 

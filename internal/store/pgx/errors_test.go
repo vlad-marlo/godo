@@ -31,5 +31,5 @@ func TestPgError(t *testing.T) {
 
 func TestTraceErr_PanicSeverity(t *testing.T) {
 	zap.ReplaceGlobals(zap.NewNop())
-	TraceError(&pgconn.PgError{Severity: "PANIC"})
+	traceError(&pgconn.PgError{Severity: "PANIC"})
 }

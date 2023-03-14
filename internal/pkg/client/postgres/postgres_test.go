@@ -20,6 +20,7 @@ func TestClient_L_NotNil(t *testing.T) {
 	assert.Equal(t, cli.logger, cli.L())
 }
 
+//goland:noinspection GoNilness
 func TestClient_L_Nil(t *testing.T) {
 	var cli *Client
 	assert.Equal(t, zap.NewNop(), cli.L())
@@ -32,6 +33,7 @@ func TestClient_P_NotNil(t *testing.T) {
 	assert.Equal(t, cli.pool, cli.P())
 }
 
+//goland:noinspection ALL
 func TestClient_P_Nil(t *testing.T) {
 	var cli *Client
 	assert.Nil(t, cli.P())

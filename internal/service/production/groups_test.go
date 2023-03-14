@@ -123,3 +123,31 @@ func TestService_UseInvite(t *testing.T) {
 		})
 	}
 }
+
+func TestService_CreateGroup_NilReq(t *testing.T) {
+	tt := []struct {
+		name string
+		err  error
+		want error
+	}{
+		{"unknown", errors.New(""), service.ErrInternal},
+		{"unique violation", store.ErrUniqueViolation, service.ErrGroupAlreadyExists},
+		{"fk violation", store.ErrFKViolation, service.ErrBadData},
+	}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			groupRepository := mocks.NewMockGroupRepository(ctrl)
+			groupRepository.EXPECT().Create(gomock.Any(), gomock.Any()).Return(tc.err)
+			st := mocks.NewMockStore(ctrl)
+			st.EXPECT().Group().Return(groupRepository)
+
+			srv := testService(t, st)
+			resp, err := srv.CreateGroup(context.Background(), uuid.New(), "", "")
+			assert.Nil(t, resp)
+			if assert.Error(t, err) {
+				assert.ErrorIs(t, err, tc.want)
+			}
+		})
+	}
+}

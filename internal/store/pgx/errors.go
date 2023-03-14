@@ -9,10 +9,10 @@ import (
 	"go.uber.org/zap"
 )
 
-// TraceError checks if error is PgError and return fields that shows more info about pg error.
+// traceError checks if error is PgError and return fields that shows more info about pg error.
 //
 // If error is not Pg then will return just zap.Error field with error in it.
-func TraceError(err error) []zap.Field {
+func traceError(err error) []zap.Field {
 	var pgErr *pgconn.PgError
 	if !errors.As(err, &pgErr) {
 		return []zap.Field{zap.Error(err)}
@@ -37,8 +37,8 @@ func TraceError(err error) []zap.Field {
 	return fields
 }
 
-// Unknown wraps store.ErrUnknown with provided error.
-func Unknown(err error) error {
+// unknown wraps store.ErrUnknown with provided error.
+func unknown(err error) error {
 	return fmt.Errorf("%w: %s", store.ErrUnknown, err.Error())
 }
 
@@ -52,7 +52,7 @@ func pgError(msg string, err error) error {
 			return store.ErrFKViolation
 		}
 	}
-	zap.L().Log(_unknownLevel, msg, TraceError(err)...)
+	zap.L().Log(_unknownLevel, msg, traceError(err)...)
 
-	return Unknown(err)
+	return unknown(err)
 }

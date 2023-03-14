@@ -20,11 +20,13 @@ func TestNew(t *testing.T) {
 
 func TestServer_Start(t *testing.T) {
 	var s *Server
+	//goland:noinspection ALL
 	err := s.Start(context.Background())
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, ErrNilPointer)
 }
 
+//goland:noinspection ALL
 func TestServer_Stop(t *testing.T) {
 	ctrl := gomock.NewController(t)
 

@@ -14,14 +14,14 @@ import (
 )
 
 const (
-	ZapRequestIDFieldName = "request_id"
-	GroupIDParamName      = "group_id"
-	InviteInQueryKey      = "invite"
+	zapRequestIDFieldName = "request_id"
+	groupIDParamName      = "group_id"
+	inviteInQueryKey      = "invite"
 )
 
-// ReqIDField return named zap field with reqID in it.
-func ReqIDField(reqID string) zap.Field {
-	return zap.String(ZapRequestIDFieldName, reqID)
+// reqIDField return named zap field with reqID in it.
+func reqIDField(reqID string) zap.Field {
+	return zap.String(zapRequestIDFieldName, reqID)
 }
 
 // RegisterUser creates user with provided data.
@@ -43,18 +43,18 @@ func (s *Server) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	var buf bytes.Buffer
 	if _, err := io.Copy(&buf, r.Body); err != nil {
-		s.respond(w, http.StatusInternalServerError, nil, ReqIDField(reqID), zap.Error(err))
+		s.respond(w, http.StatusInternalServerError, nil, reqIDField(reqID), zap.Error(err))
 		return
 	}
 
 	if err := json.NewDecoder(&buf).Decode(&req); err != nil {
-		s.respond(w, http.StatusBadRequest, nil, zap.Error(err), ReqIDField(reqID))
+		s.respond(w, http.StatusBadRequest, nil, zap.Error(err), reqIDField(reqID))
 		return
 	}
 
 	u, err := s.srv.RegisterUser(r.Context(), req.Email, req.Password)
 	if err != nil {
-		s.handleErr(w, err, ReqIDField(reqID))
+		s.handleErr(w, err, reqIDField(reqID))
 		return
 	}
 
@@ -80,19 +80,19 @@ func (s *Server) CreateToken(w http.ResponseWriter, r *http.Request) {
 	reqID := middleware.GetReqID(r.Context())
 
 	if _, err := io.Copy(&buf, r.Body); err != nil {
-		s.respond(w, http.StatusInternalServerError, nil, zap.Error(err), ReqIDField(reqID))
+		s.respond(w, http.StatusInternalServerError, nil, zap.Error(err), reqIDField(reqID))
 		return
 	}
 	_ = r.Body.Close()
 
 	if err := json.NewDecoder(&buf).Decode(&req); err != nil {
-		s.respond(w, http.StatusBadRequest, nil, zap.Error(err), ReqIDField(reqID))
+		s.respond(w, http.StatusBadRequest, nil, zap.Error(err), reqIDField(reqID))
 		return
 	}
 
 	u, err := s.srv.CreateToken(r.Context(), req.Email, req.Password, req.TokenType)
 	if err != nil {
-		s.handleErr(w, err, zap.Error(err), ReqIDField(reqID))
+		s.handleErr(w, err, zap.Error(err), reqIDField(reqID))
 		return
 	}
 
@@ -112,7 +112,7 @@ func (s *Server) CreateToken(w http.ResponseWriter, r *http.Request) {
 func (s *Server) Ping(w http.ResponseWriter, r *http.Request) {
 	reqID := middleware.GetReqID(r.Context())
 	if err := s.srv.Ping(r.Context()); err != nil {
-		s.handleErr(w, err, ReqIDField(reqID))
+		s.handleErr(w, err, reqIDField(reqID))
 		return
 	}
 
@@ -149,17 +149,17 @@ func (s *Server) CreateGroup(w http.ResponseWriter, r *http.Request) {
 
 	var req model.CreateGroupRequest
 	if err := json.NewDecoder(&buf).Decode(&req); err != nil {
-		s.respond(w, http.StatusBadRequest, nil, ReqIDField(reqID), zap.Error(err))
+		s.respond(w, http.StatusBadRequest, nil, reqIDField(reqID), zap.Error(err))
 		return
 	}
 
 	resp, err := s.srv.CreateGroup(ctx, user, req.Name, req.Description)
 	if err != nil {
-		s.handleErr(w, err, ReqIDField(reqID))
+		s.handleErr(w, err, reqIDField(reqID))
 		return
 	}
 
-	s.respond(w, http.StatusCreated, resp, ReqIDField(reqID))
+	s.respond(w, http.StatusCreated, resp, reqIDField(reqID))
 }
 
 // CreateInviteLink create new invite link.
@@ -186,13 +186,13 @@ func (s *Server) CreateInviteLink(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
 
 	if _, err := io.Copy(&buf, r.Body); err != nil {
-		s.respond(w, http.StatusInternalServerError, nil, zap.Error(err), ReqIDField(reqID))
+		s.respond(w, http.StatusInternalServerError, nil, zap.Error(err), reqIDField(reqID))
 		return
 	}
 	_ = r.Body.Close()
 
 	if err := json.NewDecoder(&buf).Decode(&req); err != nil {
-		s.respond(w, http.StatusBadRequest, nil, zap.Error(err), ReqIDField(reqID))
+		s.respond(w, http.StatusBadRequest, nil, zap.Error(err), reqIDField(reqID))
 		return
 	}
 
@@ -205,7 +205,7 @@ func (s *Server) CreateInviteLink(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.srv.CreateInvite(r.Context(), u, req.Group, role, req.Limit)
 	if err != nil {
-		s.handleErr(w, err, ReqIDField(reqID))
+		s.handleErr(w, err, reqIDField(reqID))
 		return
 	}
 
@@ -238,19 +238,19 @@ func (s *Server) CreateInviteViaGroup(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
 
 	if _, err := io.Copy(&buf, r.Body); err != nil {
-		s.respond(w, http.StatusInternalServerError, nil, zap.Error(err), ReqIDField(reqID))
+		s.respond(w, http.StatusInternalServerError, nil, zap.Error(err), reqIDField(reqID))
 		return
 	}
 	_ = r.Body.Close()
 
-	group, err := uuid.Parse(chi.URLParam(r, GroupIDParamName))
+	group, err := uuid.Parse(chi.URLParam(r, groupIDParamName))
 	if err != nil {
-		s.respond(w, http.StatusBadRequest, map[string]string{"path": "bad group id"}, zap.Error(err), ReqIDField(reqID))
+		s.respond(w, http.StatusBadRequest, map[string]string{"path": "bad group id"}, zap.Error(err), reqIDField(reqID))
 		return
 	}
 
 	if err = json.NewDecoder(&buf).Decode(&req); err != nil {
-		s.respond(w, http.StatusBadRequest, nil, zap.Error(err), ReqIDField(reqID))
+		s.respond(w, http.StatusBadRequest, nil, zap.Error(err), reqIDField(reqID))
 		return
 	}
 
@@ -264,11 +264,11 @@ func (s *Server) CreateInviteViaGroup(w http.ResponseWriter, r *http.Request) {
 	var resp *model.CreateInviteResponse
 	resp, err = s.srv.CreateInvite(r.Context(), u, group, role, req.Limit)
 	if err != nil {
-		s.handleErr(w, err, ReqIDField(reqID))
+		s.handleErr(w, err, reqIDField(reqID))
 		return
 	}
 
-	s.respond(w, http.StatusCreated, resp, ReqIDField(reqID))
+	s.respond(w, http.StatusCreated, resp, reqIDField(reqID))
 
 }
 
@@ -291,19 +291,19 @@ func (s *Server) CreateInviteViaGroup(w http.ResponseWriter, r *http.Request) {
 //
 //	@Router		/groups/{group_id}/apply [post]
 func (s *Server) UseInvite(w http.ResponseWriter, r *http.Request) {
-	reqID := ReqIDField(middleware.GetReqID(r.Context()))
+	reqID := reqIDField(middleware.GetReqID(r.Context()))
 	_ = r.Body.Close()
 
 	user := mw.UserFromCtx(r.Context())
 
-	group, err := uuid.Parse(chi.URLParam(r, GroupIDParamName))
+	group, err := uuid.Parse(chi.URLParam(r, groupIDParamName))
 	if err != nil {
 		s.respond(w, http.StatusBadRequest, map[string]string{"url": "invite must be valid group id in it"}, reqID)
 		return
 	}
 
 	var invite uuid.UUID
-	invite, err = uuid.Parse(r.URL.Query().Get(InviteInQueryKey))
+	invite, err = uuid.Parse(r.URL.Query().Get(inviteInQueryKey))
 	if err != nil {
 		s.respond(w, http.StatusBadRequest, map[string]string{"query": "invite must be valid uuid"}, reqID)
 		return
@@ -332,7 +332,7 @@ func (s *Server) UseInvite(w http.ResponseWriter, r *http.Request) {
 //
 //	@Router		/users/me [get]
 func (s *Server) UserMe(w http.ResponseWriter, r *http.Request) {
-	reqID := ReqIDField(middleware.GetReqID(r.Context()))
+	reqID := reqIDField(middleware.GetReqID(r.Context()))
 
 	u := mw.UserFromCtx(r.Context())
 	resp, err := s.srv.GetMe(r.Context(), u)
@@ -360,7 +360,7 @@ func (s *Server) UserMe(w http.ResponseWriter, r *http.Request) {
 //	@Router		/tasks [get]
 func (s *Server) AllTasks(w http.ResponseWriter, r *http.Request) {
 	_ = r.Body.Close()
-	reqID := ReqIDField(middleware.GetReqID(r.Context()))
+	reqID := reqIDField(middleware.GetReqID(r.Context()))
 	u := mw.UserFromCtx(r.Context())
 
 	resp, err := s.srv.GetUserTasks(r.Context(), u)
@@ -390,7 +390,7 @@ func (s *Server) AllTasks(w http.ResponseWriter, r *http.Request) {
 //
 //	@Router		/tasks/{task_id} [get]
 func (s *Server) GetTask(w http.ResponseWriter, r *http.Request) {
-	reqID := ReqIDField(middleware.GetReqID(r.Context()))
+	reqID := reqIDField(middleware.GetReqID(r.Context()))
 	u := mw.UserFromCtx(r.Context())
 	g, err := uuid.Parse(chi.URLParam(r, "task_id"))
 	if err != nil {
@@ -426,7 +426,7 @@ func (s *Server) GetTask(w http.ResponseWriter, r *http.Request) {
 //
 //	@Router		/tasks/ [post]
 func (s *Server) CreateTask(w http.ResponseWriter, r *http.Request) {
-	reqID := ReqIDField(middleware.GetReqID(r.Context()))
+	reqID := reqIDField(middleware.GetReqID(r.Context()))
 
 	var buf bytes.Buffer
 	if _, err := io.Copy(&buf, r.Body); err != nil {

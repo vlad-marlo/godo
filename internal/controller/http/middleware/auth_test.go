@@ -22,13 +22,13 @@ func TestUserFromCtx_NoUserInIt(t *testing.T) {
 func TestUserFromCtx_Ok(t *testing.T) {
 	ctx := context.Background()
 	u := uuid.New()
-	ctx = ContextWithUser(ctx, u)
+	ctx = contextWithUser(ctx, u)
 	assert.Equal(t, u, UserFromCtx(ctx))
 }
 
 func TestContextWithUser_Nil(t *testing.T) {
 	u := uuid.New()
-	ctx := ContextWithUser(nil, u)
+	ctx := contextWithUser(nil, u)
 	require.NotNil(t, ctx)
 }
 

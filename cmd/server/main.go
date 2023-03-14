@@ -59,6 +59,7 @@ func CreateApp() fx.Option {
 			pgx.NewTokenRepository,
 			pgx.NewTaskRepository,
 			pgx.NewInviteRepository,
+			pgx.NewRoleRepository,
 			httpctrl.New,
 		),
 		fx.Invoke(

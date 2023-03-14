@@ -12,16 +12,16 @@ type (
 		Review  int       `json:"reviews-permission" example:"4"`
 		Comment int       `json:"comments-permission" example:"4"`
 	}
-	// CreateInviteRequest is response returned to user.
+	// CreateInviteResponse is response returned to user.
 	CreateInviteResponse struct {
 		// Link is invite link to group.
 		Link string `json:"invite-link" example:"http://localhost:8080/api/v1/groups/00000000-0000-0000-0000-000000000000/apply?invite=00000000-0000-0000-0000-000000000000"`
-		// Limit is count of avaliable usages of invite link.
+		// Limit is count of available usages of invite link.
 		Limit int `json:"limit" example:"2"`
 	}
 	// CreateInviteViaGroupRequest is response object to create invite.
 	CreateInviteViaGroupRequest struct {
-		// Limit is count of avaliable usages of invite link
+		// Limit is count of available usages of invite link
 		Limit int `json:"limit" example:"2"`
 		// Member is role of user.
 		//

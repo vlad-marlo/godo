@@ -22,6 +22,7 @@ func TestNewError(t *testing.T) {
 	assert.ErrorIs(t, wrappedErr1, err1)
 }
 
+//goland:noinspection GoNilness
 func TestFieldError_Error(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		msg := uuid.NewString()
@@ -73,6 +74,7 @@ func TestErrorIs(t *testing.T) {
 	assert.Equal(t, (error)(nil), (*Error)(nil).Unwrap())
 }
 
+//goland:noinspection GoNilness
 func TestError_Fields(t *testing.T) {
 	fields := []zap.Field{
 		zap.String("xd", "xd"),

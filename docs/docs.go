@@ -696,7 +696,7 @@ const docTemplate = `{
                     "example": "http://localhost:8080/api/v1/groups/00000000-0000-0000-0000-000000000000/apply?invite=00000000-0000-0000-0000-000000000000"
                 },
                 "limit": {
-                    "description": "Limit is count of avaliable usages of invite link.",
+                    "description": "Limit is count of available usages of invite link.",
                     "type": "integer",
                     "example": 2
                 }
@@ -711,7 +711,7 @@ const docTemplate = `{
                     "example": 4
                 },
                 "limit": {
-                    "description": "Limit is count of avaliable usages of invite link",
+                    "description": "Limit is count of available usages of invite link",
                     "type": "integer",
                     "example": 2
                 },

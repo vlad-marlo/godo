@@ -15,10 +15,12 @@ import (
 func (s *Service) GetUserTasks(ctx context.Context, user uuid.UUID) (*model.GetTasksResponse, error) {
 	tasks, err := s.store.Task().AllByUser(ctx, user)
 	if err != nil {
-		if errors.Is(err, store.ErrNotFound) {
-			return nil, service.ErrNotFound.With(zap.Error(err))
+		switch {
+		case errors.Is(err, store.ErrNotFound):
+			return nil, service.ErrNoContent.With(zap.Error(err))
+		default:
+			return nil, service.ErrInternal.With(zap.Error(err))
 		}
-		return nil, service.ErrInternal.With(zap.Error(err))
 	}
 
 	return &model.GetTasksResponse{
@@ -31,11 +33,17 @@ func (s *Service) GetUserTasks(ctx context.Context, user uuid.UUID) (*model.GetT
 func (s *Service) GetTask(ctx context.Context, user, task uuid.UUID) (*model.Task, error) {
 	t, err := s.store.Task().GetByUserAndID(ctx, user, task)
 	if err != nil {
-		if errors.Is(err, store.ErrNotFound) {
+		switch {
+
+		case errors.Is(err, store.ErrNotFound):
 			return nil, service.ErrNotFound
+
+		default:
+			return nil, service.ErrInternal.With(zap.Error(err))
+
 		}
-		return nil, service.ErrInternal.With(zap.Error(err))
 	}
+
 	return t, nil
 }
 
@@ -51,7 +59,7 @@ func (s *Service) addTaskToGroup(ctx context.Context, user, task, group uuid.UUI
 		s.log.Warn("error while getting role of member", zap.Error(err))
 		return
 	}
-	if r.Tasks >= 2 {
+	if r.Tasks >= model.PermCreate {
 		if err = s.store.Task().AddToGroup(ctx, task, user); err != nil {
 			s.log.Warn("error while adding task to group", zap.Error(err))
 		}
@@ -108,8 +116,8 @@ func (s *Service) CreateTask(ctx context.Context, user uuid.UUID, req model.Task
 			return nil, service.ErrBadData
 
 		default:
+			return nil, service.ErrInternal.With(zap.Error(err))
 		}
-		return nil, service.ErrInternal.With(zap.Error(err))
 	}
 
 	// async add task to group and users

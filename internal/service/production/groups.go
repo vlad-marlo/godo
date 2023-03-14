@@ -23,15 +23,17 @@ func (s *Service) CreateGroup(ctx context.Context, user uuid.UUID, name, descrip
 	}
 
 	if err := s.store.Group().Create(ctx, grp); err != nil {
-		if errors.Is(err, store.ErrUniqueViolation) {
+		switch {
+		case errors.Is(err, store.ErrUniqueViolation):
 			return nil, service.ErrGroupAlreadyExists
-		}
-		if errors.Is(err, store.ErrFKViolation) {
+		case errors.Is(err, store.ErrFKViolation):
 			return nil, service.ErrBadData
+		default:
 		}
 
 		return nil, service.ErrInternal.With(zap.Error(err))
 	}
+	// TODO: give admin role to user;
 
 	return &model.CreateGroupResponse{
 		ID:          grp.ID,

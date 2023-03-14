@@ -253,17 +253,17 @@ func (m *MockInviteRepository) EXPECT() *MockInviteRepositoryMockRecorder {
 }
 
 // Create mocks base method.
-func (m *MockInviteRepository) Create(ctx context.Context, invite uuid.UUID, r *model.Role, group uuid.UUID, uses int) error {
+func (m *MockInviteRepository) Create(ctx context.Context, invite uuid.UUID, role int32, group uuid.UUID, uses int) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Create", ctx, invite, r, group, uses)
+	ret := m.ctrl.Call(m, "Create", ctx, invite, role, group, uses)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Create indicates an expected call of Create.
-func (mr *MockInviteRepositoryMockRecorder) Create(ctx, invite, r, group, uses interface{}) *gomock.Call {
+func (mr *MockInviteRepositoryMockRecorder) Create(ctx, invite, role, group, uses interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockInviteRepository)(nil).Create), ctx, invite, r, group, uses)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockInviteRepository)(nil).Create), ctx, invite, role, group, uses)
 }
 
 // Exists mocks base method.
@@ -418,6 +418,57 @@ func (mr *MockTaskRepositoryMockRecorder) GetByUserAndID(ctx, user, task interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByUserAndID", reflect.TypeOf((*MockTaskRepository)(nil).GetByUserAndID), ctx, user, task)
 }
 
+// MockRoleRepository is a mock of RoleRepository interface.
+type MockRoleRepository struct {
+	ctrl     *gomock.Controller
+	recorder *MockRoleRepositoryMockRecorder
+}
+
+// MockRoleRepositoryMockRecorder is the mock recorder for MockRoleRepository.
+type MockRoleRepositoryMockRecorder struct {
+	mock *MockRoleRepository
+}
+
+// NewMockRoleRepository creates a new mock instance.
+func NewMockRoleRepository(ctrl *gomock.Controller) *MockRoleRepository {
+	mock := &MockRoleRepository{ctrl: ctrl}
+	mock.recorder = &MockRoleRepositoryMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockRoleRepository) EXPECT() *MockRoleRepositoryMockRecorder {
+	return m.recorder
+}
+
+// Create mocks base method.
+func (m *MockRoleRepository) Create(ctx context.Context, role *model.Role) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Create", ctx, role)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Create indicates an expected call of Create.
+func (mr *MockRoleRepositoryMockRecorder) Create(ctx, role interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockRoleRepository)(nil).Create), ctx, role)
+}
+
+// Get mocks base method.
+func (m *MockRoleRepository) Get(ctx context.Context, role *model.Role) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Get", ctx, role)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Get indicates an expected call of Get.
+func (mr *MockRoleRepositoryMockRecorder) Get(ctx, role interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockRoleRepository)(nil).Get), ctx, role)
+}
+
 // MockStore is a mock of Store interface.
 type MockStore struct {
 	ctrl     *gomock.Controller
@@ -481,6 +532,20 @@ func (m *MockStore) Ping(ctx context.Context) error {
 func (mr *MockStoreMockRecorder) Ping(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ping", reflect.TypeOf((*MockStore)(nil).Ping), ctx)
+}
+
+// Role mocks base method.
+func (m *MockStore) Role() store.RoleRepository {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Role")
+	ret0, _ := ret[0].(store.RoleRepository)
+	return ret0
+}
+
+// Role indicates an expected call of Role.
+func (mr *MockStoreMockRecorder) Role() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Role", reflect.TypeOf((*MockStore)(nil).Role))
 }
 
 // Task mocks base method.

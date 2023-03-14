@@ -685,7 +685,7 @@ func TestServer_UseInvite_Positive(t *testing.T) {
 
 	s := TestServer(t, srv)
 
-	r := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/?%s=%s", InviteInQueryKey, invite.String()), nil)
+	r := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/?%s=%s", inviteInQueryKey, invite.String()), nil)
 	r = reqWithGroup(t, r, group.String())
 	defer assert.NoError(t, r.Body.Close())
 	w := httptest.NewRecorder()
@@ -706,7 +706,7 @@ func TestServer_UseInvite_BadInvite(t *testing.T) {
 
 	s := TestServer(t, srv)
 
-	r := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/?%s=%s", InviteInQueryKey, invite), nil)
+	r := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/?%s=%s", inviteInQueryKey, invite), nil)
 	r = reqWithGroup(t, r, group.String())
 	defer assert.NoError(t, r.Body.Close())
 	w := httptest.NewRecorder()
@@ -730,7 +730,7 @@ func TestServer_UseInvite_BadGroup(t *testing.T) {
 
 	s := TestServer(t, srv)
 
-	r := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/?%s=%s", InviteInQueryKey, invite.String()), nil)
+	r := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/?%s=%s", inviteInQueryKey, invite.String()), nil)
 	r = reqWithGroup(t, r, group)
 	defer assert.NoError(t, r.Body.Close())
 	w := httptest.NewRecorder()
@@ -766,7 +766,7 @@ func TestServer_UseInvite_NegativeBadErrors(t *testing.T) {
 
 			s := TestServer(t, srv)
 
-			r := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/?%s=%s", InviteInQueryKey, invite.String()), nil)
+			r := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/?%s=%s", inviteInQueryKey, invite.String()), nil)
 			r = reqWithGroup(t, r, group.String())
 			defer assert.NoError(t, r.Body.Close())
 			w := httptest.NewRecorder()

@@ -75,4 +75,34 @@ func TestTaskRepository_AddToGroup(t *testing.T) {
 
 	assert.NoError(t, s.task.AddToGroup(ctx, task.ID, TestGroup1.ID))
 	assert.True(t, s.group.TaskExists(ctx, TestGroup1.ID, task.ID))
+	err := s.task.AddToGroup(ctx, task.ID, TestGroup1.ID)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUniqueViolation)
+	}
+	err = s.task.AddToGroup(ctx, uuid.New(), TestGroup1.ID)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrFKViolation)
+	}
+}
+
+func TestTaskRepository_ForceAddToUser_Positive(t *testing.T) {
+	s, td := testStore(t, nil)
+	defer td()
+
+	ctx := context.Background()
+
+	err := s.task.ForceAddToUser(ctx, TestUser1.ID, TestTask1.ID)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrFKViolation)
+	}
+
+	require.NoError(t, s.user.Create(ctx, TestUser1))
+
+	err = s.task.ForceAddToUser(ctx, TestUser1.ID, TestTask1.ID)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrFKViolation)
+	}
+	require.NoError(t, s.task.Create(ctx, TestTask1))
+	err = s.task.ForceAddToUser(ctx, TestUser1.ID, TestTask1.ID)
+	assert.NoError(t, err)
 }

@@ -39,6 +39,7 @@ func TestStore_User(t *testing.T) {
 	tokRepo := NewTokenRepository(cli)
 	tskRepo := NewTaskRepository(cli)
 	invRepo := NewInviteRepository(cli)
+	roleRepo := NewRoleRepository(cli)
 	s := New(
 		cli,
 		usrRepo,
@@ -46,6 +47,7 @@ func TestStore_User(t *testing.T) {
 		tokRepo,
 		tskRepo,
 		invRepo,
+		roleRepo,
 	)
 	assert.Equal(t, usrRepo, s.User())
 	assert.Equal(t, s.user, s.User())
@@ -61,6 +63,9 @@ func TestStore_User(t *testing.T) {
 
 	assert.Equal(t, s.invite, s.Invite())
 	assert.Equal(t, s.invite, invRepo)
+
+	assert.Equal(t, s.role, s.Role())
+	assert.Equal(t, s.role, roleRepo)
 	s.Close()
 }
 
@@ -96,7 +101,7 @@ func TestBadCli(t *testing.T) {
 		assert.ErrorIs(t, err, store.ErrUnknown)
 	}
 
-	err = st.invite.Create(context.Background(), TestInvite1, TestRole1, TestGroup1.ID, 1)
+	err = st.invite.Create(context.Background(), TestInvite1, TestRole1.ID, TestGroup1.ID, 1)
 	if assert.Error(t, err) {
 		assert.ErrorIs(t, err, store.ErrUnknown)
 	}
@@ -136,5 +141,22 @@ func TestBadCli(t *testing.T) {
 		CreatedBy:   TestUser1.ID,
 		Status:      "new",
 	})
-	assert.Error(t, err)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUnknown)
+	}
+
+	err = st.role.Create(ctx, TestRole1)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUnknown)
+	}
+
+	err = st.role.Get(ctx, TestRole1)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUnknown)
+	}
+
+	err = st.token.Create(ctx, TestToken1)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUnknown)
+	}
 }

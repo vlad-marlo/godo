@@ -45,13 +45,15 @@ func (repo *UserRepository) Create(
 		u.Email,
 		u.Pass,
 	); err != nil {
-		if pgErr, ok := err.(*pgconn.PgError); ok {
-			if pgErr.Code == pgerrcode.UniqueViolation {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.UniqueViolation:
 				return store.ErrUserAlreadyExists
 			}
 		}
 		//repo.log.Warn("unknown error while creating new user", TraceError(err)...)
-		return Unknown(err)
+		return unknown(err)
 	}
 
 	return nil
@@ -88,7 +90,7 @@ func (repo *UserRepository) GetByEmail(
 			return nil, store.ErrNotFound
 		}
 
-		repo.log.Debug("unknown error while getting user by email", TraceError(err)...)
+		repo.log.Debug("unknown error while getting user by email", traceError(err)...)
 		return nil, store.ErrUnknown
 	}
 
@@ -103,8 +105,8 @@ func (repo *UserRepository) Get(ctx context.Context, id uuid.UUID) (u *model.Use
 			return nil, store.ErrNotFound
 		}
 
-		repo.log.Debug("unknown error while getting user by id", TraceError(err)...)
-		return nil, Unknown(err)
+		repo.log.Debug("unknown error while getting user by id", traceError(err)...)
+		return nil, unknown(err)
 	}
 	return u, nil
 }
@@ -140,7 +142,7 @@ WHERE r.members = $4
 			}
 		}
 
-		return Unknown(err)
+		return unknown(err)
 	}
 
 	return nil

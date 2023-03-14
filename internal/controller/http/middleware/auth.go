@@ -76,8 +76,8 @@ func respond(w http.ResponseWriter, code int, data any, fields ...zap.Field) {
 	}
 }
 
-// ContextWithUser add user to context.
-func ContextWithUser(ctx context.Context, u uuid.UUID) context.Context {
+// contextWithUser add user to context.
+func contextWithUser(ctx context.Context, u uuid.UUID) context.Context {
 	if ctx == nil {
 		ctx = context.Background()
 	}

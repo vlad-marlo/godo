@@ -20,6 +20,7 @@ import (
 	"go.uber.org/zap"
 )
 
+//goland:noinspection ALL,GoUnnecessarilyExportedIdentifiers,GoUnnecessarilyExportedIdentifiers,GoUnnecessarilyExportedIdentifiers,GoUnnecessarilyExportedIdentifiers,GoUnnecessarilyExportedIdentifiers,GoUnnecessarilyExportedIdentifiers
 type (
 	// Postgres ...
 	Postgres struct {
@@ -151,7 +152,7 @@ func initConfig() {
 				zap.L().Info("config: parse from file", zap.Error(err))
 			}
 			c.setDefaultVars()
-			if err = c.WriteToFile(configPath); err != nil {
+			if err = c.writeToFile(configPath); err != nil {
 				zap.L().Info("config: write to file", zap.Error(err))
 			}
 		} else {
@@ -163,6 +164,8 @@ func initConfig() {
 }
 
 // SetDatabaseURI ...
+//
+//goland:noinspection GoUnnecessarilyExportedIdentifiers,GoUnnecessarilyExportedIdentifiers
 func (p *Postgres) SetDatabaseURI() {
 	if p.URI == "" {
 		p.URI = fmt.Sprintf("postgresql://%s:%s@%s:%d/%s?sslmode=disable", p.User, p.Password, p.Addr, p.Port, p.Name)
@@ -250,6 +253,8 @@ func generateRandom(size int) ([]byte, error) {
 // ParseFromFile parses config from file.
 //
 // File path must be absolute.
+//
+//goland:noinspection GoUnnecessarilyExportedIdentifiers,GoUnnecessarilyExportedIdentifiers
 func (c *Config) ParseFromFile(file string) error {
 	f, err := os.Open(file)
 	if errors.Is(err, os.ErrNotExist) || errors.Is(err, os.ErrPermission) {
@@ -272,10 +277,10 @@ func (c *Config) ParseFromFile(file string) error {
 	return nil
 }
 
-// WriteToFile writes config to file.
+// writeToFile writes config to file.
 //
 // File path must be absolute.
-func (c *Config) WriteToFile(file string) error {
+func (c *Config) writeToFile(file string) error {
 	f, err := os.OpenFile(file, os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		return fmt.Errorf("os: create: %w", err)

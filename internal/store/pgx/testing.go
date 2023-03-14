@@ -104,6 +104,16 @@ var (
 		Reviews:  2,
 		Comments: 1,
 	}
+
+	// TEST TASKS //
+	TestTask1 = &model.Task{
+		ID:          uuid.New(),
+		Name:        uuid.NewString(),
+		Description: uuid.NewString(),
+		CreatedAt:   time.Now(),
+		CreatedBy:   TestUser1.ID,
+		Status:      "NEW",
+	}
 )
 
 // testStore ...
@@ -119,6 +129,7 @@ func testStore(t testing.TB, cli Client) (*Store, func()) {
 		NewTokenRepository(cli),
 		NewTaskRepository(cli),
 		NewInviteRepository(cli),
+		NewRoleRepository(cli),
 	)
 	return s, func() { teardown(t, cli)(_dbTables...) }
 }

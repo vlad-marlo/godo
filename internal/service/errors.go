@@ -90,6 +90,7 @@ var (
 		},
 		fielderr.CodeConflict,
 	)
+	ErrNoContent    = fielderr.New("no content", "", fielderr.CodeNotFound)
 	ErrUserNotFound = fielderr.New("user not found", map[string]string{
 		"user": "not found",
 	}, fielderr.CodeNotFound)

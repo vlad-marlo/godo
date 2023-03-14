@@ -24,6 +24,7 @@ type Store struct {
 	token  *TokenRepository
 	task   *TaskRepository
 	invite *InviteRepository
+	role   *RoleRepository
 }
 
 type Client interface {
@@ -41,6 +42,7 @@ func New(
 	token *TokenRepository,
 	task *TaskRepository,
 	invite *InviteRepository,
+	role *RoleRepository,
 ) *Store {
 	return &Store{
 		pool:   client.P(),
@@ -50,6 +52,7 @@ func New(
 		token:  token,
 		task:   task,
 		invite: invite,
+		role:   role,
 	}
 }
 
@@ -81,6 +84,10 @@ func (store *Store) Invite() store.InviteRepository {
 // Ping checks connection to database.
 func (store *Store) Ping(ctx context.Context) error {
 	return store.pool.Ping(ctx)
+}
+
+func (store *Store) Role() store.RoleRepository {
+	return store.role
 }
 
 // Close is helper function to close connection.
