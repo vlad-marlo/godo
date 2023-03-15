@@ -28,14 +28,15 @@ type Client struct {
 }
 
 // New return a singleton client object.
-func New(lc fx.Lifecycle, log *zap.Logger, cfg *config.Config) *Client {
+func New(lc fx.Lifecycle, log *zap.Logger, cfg *config.Config) (*Client, error) {
 	var pool *pgxpool.Pool
+	log.Info("pgConfig", zap.Any("cfg", cfg.Postgres))
 
 	c, err := pgxpool.ParseConfig(
 		cfg.Postgres.URI,
 	)
 	if err != nil {
-		log.Fatal("error while parsing pgx config", zap.Error(err))
+		return nil, fmt.Errorf("error while parsing db uri: %w", err)
 	}
 
 	var lvl tracelog.LogLevel
@@ -57,7 +58,7 @@ func New(lc fx.Lifecycle, log *zap.Logger, cfg *config.Config) *Client {
 
 	pool, err = pgxpool.NewWithConfig(context.Background(), c)
 	if err != nil {
-		log.Fatal(fmt.Sprintf("postgres: init pgxpool: %v", err))
+		return nil, fmt.Errorf("postgres: init pgxpool: %w", err)
 	}
 
 	cli := &Client{
@@ -74,7 +75,7 @@ func New(lc fx.Lifecycle, log *zap.Logger, cfg *config.Config) *Client {
 		},
 	})
 	log.Info("created postgres client")
-	return cli
+	return cli, nil
 }
 
 // P return pool object with opened connection.
@@ -112,7 +113,16 @@ func TestClient(t testing.TB) *Client {
 	t.Helper()
 	//TODO: захардкожена переменная окружения мб потом поменять
 	dbUri := os.Getenv("TEST_DB_URI")
-	pool, err := pgxpool.New(context.Background(), dbUri)
+	c, err := pgxpool.ParseConfig(dbUri)
+	require.NoError(t, err)
+
+	c.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+		pgxUUID.Register(conn.TypeMap())
+		return nil
+	}
+
+	var pool *pgxpool.Pool
+	pool, err = pgxpool.NewWithConfig(context.Background(), c)
 	require.NoError(t, err)
 	if err = pool.Ping(context.Background()); err != nil {
 		t.Skipf("database is not accessible: %s", err.Error())

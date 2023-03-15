@@ -19,10 +19,17 @@ type responseWriter struct {
 
 // newLoggingRW ...
 func newLoggingRW(w http.ResponseWriter) *responseWriter {
-	return &responseWriter{ResponseWriter: w}
+	return &responseWriter{
+		ResponseWriter: w,
+		statusCode:     http.StatusOK,
+	}
 }
 
+// Status return http code.
 func (l *responseWriter) Status() int {
+	if l == nil {
+		return http.StatusOK
+	}
 	return l.statusCode
 }
 

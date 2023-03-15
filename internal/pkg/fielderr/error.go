@@ -29,11 +29,17 @@ func New(msg string, data any, code int, fields ...zap.Field) *Error {
 
 // Error return error message.
 func (f *Error) Error() string {
+	if f == nil {
+		return ""
+	}
 	return f.msg
 }
 
 // CodeHTTP returns http Code that is equal to custom one.
 func (f *Error) CodeHTTP() int {
+	if f == nil {
+		return http.StatusInternalServerError
+	}
 	if c, ok := httpCodes[f.code]; ok {
 		return c
 	}
@@ -42,6 +48,9 @@ func (f *Error) CodeHTTP() int {
 
 // CodeGRPC returns grpc status Code that is equal to custom one.
 func (f *Error) CodeGRPC() codes.Code {
+	if f == nil {
+		return codes.Unknown
+	}
 	c, ok := grpcCodes[f.code]
 	if !ok {
 		return codes.Unknown
@@ -51,6 +60,9 @@ func (f *Error) CodeGRPC() codes.Code {
 
 // With create new error object that copies error fields instead of Fields
 func (f *Error) With(fields ...zap.Field) *Error {
+	if f == nil {
+		return &Error{fields: fields}
+	}
 	return &Error{
 		msg:    f.msg,
 		data:   f.data,
@@ -60,23 +72,42 @@ func (f *Error) With(fields ...zap.Field) *Error {
 	}
 }
 
+// Data return data to return to user.
 func (f *Error) Data() any {
+	if f == nil {
+		return nil
+	}
 	return f.data
 }
 
-func (f *Error) Err() error {
+// ErrGRPC returns prepared grpc error with msg message and correct grpc code.
+func (f *Error) ErrGRPC() error {
+	if f == nil {
+		return status.Error(codes.Unknown, "")
+	}
 	return status.Error(f.CodeGRPC(), f.msg)
 }
 
+// Code return internal code.
 func (f *Error) Code() int {
+	if f == nil {
+		return 0
+	}
 	return f.code
 }
 
+// Fields return zap fields.
 func (f *Error) Fields() []zap.Field {
+	if f == nil {
+		return nil
+	}
 	return f.fields
 }
 
 // Unwrap make available to use errors.Is with *Error.
 func (f *Error) Unwrap() error {
+	if f == nil {
+		return nil
+	}
 	return f.parent
 }

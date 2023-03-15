@@ -24,17 +24,12 @@ type UserRepository interface {
 type GroupRepository interface {
 	// Create creates record about group if it does not exist.
 	Create(ctx context.Context, group *model.Group) error
-	// Exists returns existence of group with provided id.
-	//Exists(ctx context.Context, id string) (ok bool)
-
-	// AddTask create relation between task and group
-	AddTask(ctx context.Context, task, group string) error
-	// UserExists checks existence of user in group members.
-	UserExists(ctx context.Context, group, user string) (ok bool)
 	// GetByUser ...
 	GetByUser(ctx context.Context, user uuid.UUID) ([]*model.Group, error)
 	// GetRoleOfMember return role of member in group.
 	GetRoleOfMember(ctx context.Context, user, group uuid.UUID) (role *model.Role, err error)
+	GetUserIDs(ctx context.Context, group uuid.UUID) ([]uuid.UUID, error)
+	AddUser(ctx context.Context, roleID int32, groupID, userID uuid.UUID, isAdmin bool) error
 }
 
 // TokenRepository is accessor to storing tokens.
@@ -45,16 +40,17 @@ type TokenRepository interface {
 	Get(ctx context.Context, token string) (*model.Token, error)
 }
 
+// InviteRepository is accessor to storing invites.
 type InviteRepository interface {
 	// Create creates invite with provided data.
-	Create(ctx context.Context, invite uuid.UUID, r *model.Role, group uuid.UUID, uses int) error
+	Create(ctx context.Context, invite uuid.UUID, role int32, group uuid.UUID, uses int) error
 	// Exists checks existence valid invite with provided data.
 	Exists(ctx context.Context, invite, group uuid.UUID) bool
 	// Use decrements left uses of invite and adds user to group in tx.
 	Use(ctx context.Context, invite uuid.UUID, user uuid.UUID) error
 }
 
-// TaskRepository ...
+// TaskRepository is accessor to storage of tasks.
 type TaskRepository interface {
 	// AllByGroupAndUser return all tasks that are related to group.
 	AllByGroupAndUser(ctx context.Context, group uuid.UUID, user uuid.UUID) ([]*model.Task, error)
@@ -64,10 +60,17 @@ type TaskRepository interface {
 	GetByUserAndID(ctx context.Context, user, task uuid.UUID) (*model.Task, error)
 	// Create creates record about task.
 	Create(ctx context.Context, task *model.Task) error
-	// AddToUser ...
+	// AddToUser add task to user with check that user has permission to do this.
 	AddToUser(ctx context.Context, from, task, to uuid.UUID) error
+	// ForceAddToUser add task to user without any checks.
+	ForceAddToUser(ctx context.Context, user, task uuid.UUID) error
 	// AddToGroup ...
 	AddToGroup(ctx context.Context, task, group uuid.UUID) error
+}
+
+type RoleRepository interface {
+	Create(ctx context.Context, role *model.Role) error
+	Get(ctx context.Context, role *model.Role) error
 }
 
 // Store is composite object that does not include any storage function.
@@ -82,6 +85,7 @@ type Store interface {
 	Token() TokenRepository
 	// Task is TaskRepository accessor.
 	Task() TaskRepository
+	Role() RoleRepository
 	// Invite is InviteRepository accessor.
 	Invite() InviteRepository
 	// Ping checks is Store working correctly.

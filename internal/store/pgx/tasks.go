@@ -4,9 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/google/uuid"
-	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vlad-marlo/godo/internal/model"
 	"github.com/vlad-marlo/godo/internal/store"
@@ -49,9 +47,9 @@ WHERE tu.user_id = $1 OR t.created_by = $1 OR (uig.user_id = $1 AND (uig.is_admi
 			return nil, store.ErrNotFound
 		}
 
-		repo.log.Log(_unknownLevel, "get tasks by group and user", TraceError(err)...)
+		repo.log.Log(_unknownLevel, "get tasks by group and user", traceError(err)...)
 
-		return nil, Unknown(err)
+		return nil, unknown(err)
 	}
 
 	defer rows.Close()
@@ -61,8 +59,8 @@ WHERE tu.user_id = $1 OR t.created_by = $1 OR (uig.user_id = $1 AND (uig.is_admi
 		t := new(model.Task)
 
 		if err = rows.Scan(&t.ID, &t.Name, &t.Description, &t.CreatedAt, &t.CreatedBy, &t.Status); err != nil {
-			repo.log.Log(_unknownLevel, "scan task while getting group tasks", TraceError(err)...)
-			return nil, Unknown(err)
+			repo.log.Log(_unknownLevel, "scan task while getting group tasks", traceError(err)...)
+			return nil, unknown(err)
 		}
 
 		resp = append(resp, t)
@@ -72,13 +70,13 @@ WHERE tu.user_id = $1 OR t.created_by = $1 OR (uig.user_id = $1 AND (uig.is_admi
 			return nil, store.ErrNotFound
 		}
 
-		return nil, Unknown(err)
+		return nil, unknown(err)
 	}
 
 	return resp, nil
 }
 
-// AllByGroupAndUser return all related to
+// AllByGroupAndUser return all related to user tasks.
 func (repo *TaskRepository) AllByGroupAndUser(ctx context.Context, group uuid.UUID, user uuid.UUID) ([]*model.Task, error) {
 	// данный вопрос возвращает все задачи, к которым относится пользователь - он администратор группы, имеет право на чтение, или указан как получатель задачи.
 	q := `SELECT t.id, t.name, t.description, t.created_at, t.created_by, t.status
@@ -96,9 +94,9 @@ WHERE tg.group_id = $1
 			return nil, store.ErrNotFound
 		}
 
-		repo.log.Log(_unknownLevel, "get tasks by group and user", TraceError(err)...)
+		repo.log.Log(_unknownLevel, "get tasks by group and user", traceError(err)...)
 
-		return nil, Unknown(err)
+		return nil, unknown(err)
 	}
 
 	defer rows.Close()
@@ -108,8 +106,8 @@ WHERE tg.group_id = $1
 		t := new(model.Task)
 
 		if err = rows.Scan(&t.ID, &t.Name, &t.Description, &t.CreatedAt, &t.CreatedBy, &t.Status); err != nil {
-			repo.log.Log(_unknownLevel, "scan task while getting group tasks", TraceError(err)...)
-			return nil, Unknown(err)
+			repo.log.Log(_unknownLevel, "scan task while getting group tasks", traceError(err)...)
+			return nil, unknown(err)
 		}
 
 		resp = append(resp, t)
@@ -139,17 +137,21 @@ WHERE t.id = $2 AND (tu.user_id = $1 OR t.created_by = $1 OR (uig.user_id = $1 A
 			return nil, store.ErrNotFound
 		}
 
-		repo.log.Log(_unknownLevel, "get tasks by group and user", TraceError(err)...)
+		repo.log.Log(_unknownLevel, "get tasks by group and user", traceError(err)...)
 
-		return nil, Unknown(err)
+		return nil, unknown(err)
 	}
 	return t, nil
 }
 
+// Create stores task model to vault.
 func (repo *TaskRepository) Create(ctx context.Context, task *model.Task) error {
+	if task == nil {
+		return store.ErrNilReference
+	}
 	if _, err := repo.pool.Exec(
 		ctx,
-		`INSERT INTO tasks(id, name, description, created_at, created_by, status)
+		`INSERT INTO tasks(id, "name", description, created_at, created_by, status)
 VALUES ($1, $2, $3, $4, $5, $6);`,
 		task.ID,
 		task.Name,
@@ -158,72 +160,70 @@ VALUES ($1, $2, $3, $4, $5, $6);`,
 		task.CreatedBy,
 		task.Status,
 	); err != nil {
-		if pgErr, ok := err.(*pgconn.PgError); ok {
-			switch pgErr.Code {
-			case pgerrcode.UniqueViolation:
-				return store.ErrUniqueViolation
-			case pgerrcode.ForeignKeyViolation, pgerrcode.InvalidForeignKey:
-				return store.ErrFKViolation
-			}
-		}
-		repo.log.Log(_unknownLevel, "tasks: create", TraceError(err)...)
-
-		return Unknown(err)
+		return pgError("tasks: create", err)
 	}
 
 	return nil
 }
 
+// AddToGroup add relation task-group.
 func (repo *TaskRepository) AddToGroup(ctx context.Context, task, group uuid.UUID) error {
 	if _, err := repo.pool.Exec(ctx, `INSERT INTO task_group(task_id, group_id) VALUES ($1, $2);`, task, group); err != nil {
-		if pgErr, ok := err.(*pgconn.PgError); ok {
-			switch pgErr.Code {
-			case pgerrcode.UniqueViolation:
-				return store.ErrUniqueViolation
-			case pgerrcode.ForeignKeyViolation, pgerrcode.InvalidForeignKey:
-				return store.ErrFKViolation
-			}
-		}
-
-		repo.log.Log(_unknownLevel, "add task to group", TraceError(err)...)
-		return Unknown(err)
+		return pgError("add task to group", err)
 	}
 	return nil
 }
 
-// AddToUser add
+// AddToUser add task to user.
+//
+// Arguments summary info:
+// from - is id of user who is doing addition;
+// task - is task id;
+// to - is id of user who will receive task.
 func (repo *TaskRepository) AddToUser(ctx context.Context, from, task, to uuid.UUID) error {
 	var ok bool
 	// check existence of group where exists both of users and user, who want to add task has permission.
 	_ = repo.pool.QueryRow(
 		ctx,
 		`SELECT EXISTS(
-               SELECT *
+               SELECT g.id
                FROM groups g
                         LEFT JOIN user_in_group uig on g.id = uig.group_id
                         LEFT JOIN roles r on r.id = uig.role_id
-               WHERE EXISTS(SELECT * FROM user_in_group WHERE user_id = $1 AND group_id = g.id)
-                 AND EXISTS(SELECT * FROM user_in_group WHERE user_id = $2 AND group_id = g.id)
-                 AND (uig = $2 AND (uig.is_admin OR r.tasks >= 2))
+               WHERE EXISTS(SELECT * FROM user_in_group WHERE user_id = $1)
+                 AND EXISTS(SELECT * FROM user_in_group WHERE user_id = $2)
+                 AND (uig.user_id = $2 AND (uig.is_admin OR r.tasks >= $3))
            );`,
 		to,
 		from,
+		model.PermCreate,
 	).Scan(&ok)
 	if !ok {
-		return nil
+		return store.ErrNotAuthorized
 	}
 
-	if _, err := repo.pool.Exec(ctx, `INSERT INTO task_user(user_id, task_id)
-VALUES ($1, $2);`, to, task, from); err != nil {
-		if pgErr, ok := err.(*pgconn.PgError); ok {
-			switch pgErr.Code {
-			case pgerrcode.UniqueViolation:
-				return store.ErrUniqueViolation
-			case pgerrcode.ForeignKeyViolation, pgerrcode.InvalidForeignKey:
-				return store.ErrFKViolation
-			}
-		}
-		return Unknown(err)
+	if _, err := repo.pool.Exec(
+		ctx,
+		`INSERT INTO task_user(user_id, task_id)
+VALUES ($1, $2);`,
+		to,
+		task,
+	); err != nil {
+		return pgError("task: add to user", err)
 	}
 	return nil
+}
+
+// ForceAddToUser add task to user without any permission checks in it.
+func (repo *TaskRepository) ForceAddToUser(ctx context.Context, userID, taskID uuid.UUID) error {
+	if _, err := repo.pool.Exec(ctx, `INSERT INTO task_user(user_id, task_id) VALUES ($1, $2)`, userID, taskID); err != nil {
+		return pgError("store: task: force add to user", err)
+	}
+	return nil
+}
+
+// Exists return existence of task with provided id.
+func (repo *TaskRepository) Exists(ctx context.Context, id uuid.UUID) (ok bool) {
+	_ = repo.pool.QueryRow(ctx, `SELECT EXISTS(SELECT * FROM tasks WHERE id = $1);`, id).Scan(&ok)
+	return
 }

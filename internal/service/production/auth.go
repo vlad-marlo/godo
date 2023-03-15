@@ -74,15 +74,15 @@ func (s *Service) getUserFromAuthToken(ctx context.Context, t string) (uuid.UUID
 	t = strings.TrimPrefix(strings.TrimPrefix(t, "Authorization "), "authorization ")
 	u, err := s.store.Token().Get(ctx, t)
 
-	if time.Now().UTC().After(u.ExpiresAt.UTC()) && u.Expires {
-		return uuid.Nil, service.ErrTokenNotValid
-	}
-
 	if err != nil {
 		if errors.Is(err, store.ErrUnknown) {
 			return uuid.Nil, service.ErrInternal.With(zap.Error(err))
 		}
 		return uuid.Nil, service.ErrTokenNotValid.With(zap.Error(err))
+	}
+
+	if time.Now().UTC().After(u.ExpiresAt.UTC()) && u.Expires {
+		return uuid.Nil, service.ErrTokenNotValid
 	}
 
 	return u.UserID, nil

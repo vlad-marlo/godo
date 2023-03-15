@@ -1,4 +1,3 @@
-//go:generate mockgen --source=auth.go --destination=mocks/service.go --package=mocks
 package middleware
 
 import (
@@ -44,13 +43,13 @@ func AuthChecker(srv Service) func(next http.Handler) http.Handler {
 				return
 			}
 
-			next.ServeHTTP(w, WithUser(r, u))
+			next.ServeHTTP(w, RequestWithUser(r, u))
 		})
 	}
 }
 
 // respond helper function to write response to user.
-func respond(w http.ResponseWriter, code int, data interface{}, fields ...zap.Field) {
+func respond(w http.ResponseWriter, code int, data any, fields ...zap.Field) {
 	var lvl zapcore.Level
 	switch {
 	case code >= 500:
@@ -77,13 +76,28 @@ func respond(w http.ResponseWriter, code int, data interface{}, fields ...zap.Fi
 	}
 }
 
-// WithUser adds user to request's context.
+// contextWithUser add user to context.
+func contextWithUser(ctx context.Context, u uuid.UUID) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return context.WithValue(ctx, userInCtxKey{}, u)
+}
+
+// RequestWithUser adds user to request's context.
 // To get user id from request use UserFromContext.
-func WithUser(r *http.Request, u uuid.UUID) *http.Request {
+func RequestWithUser(r *http.Request, u uuid.UUID) *http.Request {
 	return r.WithContext(context.WithValue(r.Context(), userInCtxKey{}, u))
 }
 
 // UserFromCtx must be used with AuthChecker middleware. To get user from request you must pass *http.Request.Context() into func.
 func UserFromCtx(ctx context.Context) uuid.UUID {
-	return ctx.Value(userInCtxKey{}).(uuid.UUID)
+	if ctx == nil {
+		return uuid.Nil
+	}
+
+	if u, ok := ctx.Value(userInCtxKey{}).(uuid.UUID); ok {
+		return u
+	}
+	return uuid.Nil
 }

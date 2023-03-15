@@ -19,12 +19,24 @@ func TestService_CreateGroup_Positive(t *testing.T) {
 
 	str := mocks.NewMockStore(ctrl)
 	grp := mocks.NewMockGroupRepository(ctrl)
-	grp.EXPECT().Create(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, g *model.Group) error {
-		assert.Equal(t, TestGroup1.Owner, g.Owner)
-		return nil
-	})
+	roleRepo := mocks.NewMockRoleRepository(ctrl)
 
-	str.EXPECT().Group().Return(grp)
+	grp.
+		EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, g *model.Group) error {
+			assert.Equal(t, TestGroup1.Owner, g.Owner)
+			return nil
+		})
+	roleRepo.
+		EXPECT().
+		Get(gomock.Any(), gomock.Any()).Return(nil)
+	grp.
+		EXPECT().
+		AddUser(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), true)
+
+	str.EXPECT().Group().Return(grp).Times(2)
+	str.EXPECT().Role().Return(roleRepo)
 
 	srv := testService(t, str)
 
@@ -51,6 +63,62 @@ func TestService_CreateGroup_Negative_ErrGroupAlreadyExists(t *testing.T) {
 	resp, err := srv.CreateGroup(context.Background(), TestGroup1.Owner, TestGroup1.Name, TestGroup1.Description)
 	assert.Nil(t, resp)
 	assert.ErrorIs(t, err, service.ErrGroupAlreadyExists)
+}
+
+func TestService_CreateGroup_Negative_ErrWhileGettingRole(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	str := mocks.NewMockStore(ctrl)
+	grpRepo := mocks.NewMockGroupRepository(ctrl)
+	roleRepo := mocks.NewMockRoleRepository(ctrl)
+	grpRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+	roleRepo.EXPECT().Get(gomock.Any(), gomock.Any()).Return(errors.New(""))
+	str.EXPECT().Group().Return(grpRepo)
+	str.EXPECT().Role().Return(roleRepo)
+	s := testService(t, str)
+	resp, err := s.CreateGroup(context.Background(), uuid.New(), uuid.NewString(), uuid.NewString())
+	assert.Nil(t, resp)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, service.ErrInternal)
+	}
+}
+
+func TestService_CreateGroup_Negative_ErrWhileAddingUser(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	str := mocks.NewMockStore(ctrl)
+	grp := mocks.NewMockGroupRepository(ctrl)
+	roleRepo := mocks.NewMockRoleRepository(ctrl)
+
+	grp.
+		EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, g *model.Group) error {
+			assert.Equal(t, TestGroup1.Owner, g.Owner)
+			return nil
+		})
+	roleRepo.
+		EXPECT().
+		Get(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, role *model.Role) error {
+			role.ID = 10
+			return nil
+		})
+	grp.
+		EXPECT().
+		AddUser(gomock.Any(), int32(10), gomock.Any(), TestGroup1.Owner, true).Return(errors.New(""))
+
+	str.EXPECT().Group().Return(grp).Times(2)
+	str.EXPECT().Role().Return(roleRepo)
+
+	srv := testService(t, str)
+
+	ctx := context.Background()
+
+	resp, err := srv.CreateGroup(ctx, TestGroup1.Owner, TestGroup1.Name, TestGroup1.Description)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, service.ErrInternal)
+	}
+	assert.Nil(t, resp)
 }
 
 func TestService_CreateGroup_BadUser(t *testing.T) {
@@ -120,6 +188,34 @@ func TestService_UseInvite(t *testing.T) {
 			err := srv.UseInvite(context.Background(), uuid.New(), uuid.New(), uuid.New())
 			tc.ass(t, err)
 			assert.ErrorIs(t, err, tc.want)
+		})
+	}
+}
+
+func TestService_CreateGroup_NilReq(t *testing.T) {
+	tt := []struct {
+		name string
+		err  error
+		want error
+	}{
+		{"unknown", errors.New(""), service.ErrInternal},
+		{"unique violation", store.ErrUniqueViolation, service.ErrGroupAlreadyExists},
+		{"fk violation", store.ErrFKViolation, service.ErrBadData},
+	}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			groupRepository := mocks.NewMockGroupRepository(ctrl)
+			groupRepository.EXPECT().Create(gomock.Any(), gomock.Any()).Return(tc.err)
+			st := mocks.NewMockStore(ctrl)
+			st.EXPECT().Group().Return(groupRepository)
+
+			srv := testService(t, st)
+			resp, err := srv.CreateGroup(context.Background(), uuid.New(), "", "")
+			assert.Nil(t, resp)
+			if assert.Error(t, err) {
+				assert.ErrorIs(t, err, tc.want)
+			}
 		})
 	}
 }

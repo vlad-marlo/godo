@@ -23,14 +23,27 @@ func (s *Service) CreateGroup(ctx context.Context, user uuid.UUID, name, descrip
 	}
 
 	if err := s.store.Group().Create(ctx, grp); err != nil {
-		if errors.Is(err, store.ErrUniqueViolation) {
+		switch {
+		case errors.Is(err, store.ErrUniqueViolation):
 			return nil, service.ErrGroupAlreadyExists
-		}
-		if errors.Is(err, store.ErrFKViolation) {
+		case errors.Is(err, store.ErrFKViolation):
 			return nil, service.ErrBadData
+		default:
 		}
 
 		return nil, service.ErrInternal.With(zap.Error(err))
+	}
+	role := &model.Role{
+		Members:  model.PermChangeAll,
+		Tasks:    model.PermChangeAll,
+		Reviews:  model.PermChangeAll,
+		Comments: model.PermChangeAll,
+	}
+	if err := s.store.Role().Get(ctx, role); err != nil {
+		return nil, service.ErrInternal.With(zap.Error(err), zap.String("at", "role get id"))
+	}
+	if err := s.store.Group().AddUser(ctx, role.ID, grp.ID, user, true); err != nil {
+		return nil, service.ErrInternal.With(zap.Error(err), zap.String("at", "add user to group"))
 	}
 
 	return &model.CreateGroupResponse{

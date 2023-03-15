@@ -1,12 +1,14 @@
-//go:generate mockgen --source=server.go --destination=mocks/service.go --package=mocks
 package grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
+
 	"github.com/google/uuid"
 	"github.com/vlad-marlo/godo/internal/model"
-	"net"
+	"github.com/vlad-marlo/godo/internal/pkg/fielderr"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -63,15 +65,26 @@ func (s *Server) Start(context.Context) error {
 		return fmt.Errorf("net: listen: %w", err)
 	}
 	go func() {
-		if err := s.server.Serve(ln); err != nil {
-			s.logger.Fatal("serve grpc", zap.Error(err))
+		if err = s.server.Serve(ln); err != nil {
+			s.logger.Warn("serve grpc", zap.Error(err))
 		}
 	}()
 	s.logger.Info("starting GRPC server")
 	return nil
 }
 
+// Stop stops GRPC server.
 func (s *Server) Stop(context.Context) error {
 	s.server.GracefulStop()
 	return nil
+}
+
+// handleErr
+func (s *Server) handleErr(msg string, err error) error {
+	var fErr *fielderr.Error
+	if errors.As(err, &fErr) {
+		return fErr.ErrGRPC()
+	}
+
+	return s.internal(msg, err)
 }

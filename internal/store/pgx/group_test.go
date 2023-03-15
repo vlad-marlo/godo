@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/vlad-marlo/godo/internal/model"
 	"github.com/vlad-marlo/godo/internal/store"
-	"go.uber.org/zap"
 	"testing"
 	"time"
 )
@@ -30,21 +29,28 @@ func TestGroupRepository_Create_Negative_BadData(t *testing.T) {
 }
 
 func TestGroupRepository_Create_Positive(t *testing.T) {
-	log, _ := zap.NewProduction()
-	replacer := zap.ReplaceGlobals(log)
-	defer replacer()
-	repo, td := testGroup(t)
+	s, td := testStore(t, nil)
 	defer td()
-	user, tdUser := testUsers(t)
-	defer tdUser()
 
 	ctx := context.Background()
 
-	require.NoError(t, user.Create(ctx, TestUser1))
-	err := repo.Create(ctx, TestGroup1)
+	require.NoError(t, s.user.Create(ctx, TestUser1))
+	err := s.group.Create(ctx, TestGroup1)
 	assert.NoError(t, err)
-	err = repo.Create(ctx, TestGroup2)
+	err = s.group.Create(ctx, TestGroup2)
 	assert.NoError(t, err)
+}
+
+func TestGroupRepository_Create_NilReference(t *testing.T) {
+	s, td := testStore(t, nil)
+	defer td()
+
+	ctx := context.Background()
+
+	err := s.group.Create(ctx, nil)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrNilReference)
+	}
 }
 
 func TestGroupRepository_Create_AlreadyExists(t *testing.T) {

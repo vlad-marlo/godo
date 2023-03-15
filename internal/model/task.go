@@ -2,8 +2,9 @@ package model
 
 import (
 	"encoding/json"
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type (
@@ -14,7 +15,6 @@ type (
 		Description string    `json:"description"`
 		CreatedAt   time.Time `json:"-"`
 		CreatedBy   uuid.UUID `json:"created-by"`
-		Created     int64     `json:"created-at"`
 		Status      string    `json:"status"`
 	}
 	// TaskCreateRequest ...
@@ -27,8 +27,9 @@ type (
 		// If not defined, will create task only for user, who creates this task or for group.
 		Users []uuid.UUID `json:"users"`
 		// Group - optional filed that show group to which task will be related.
-		Group uuid.UUID `json:"group"`
+		Group *uuid.UUID `json:"group"`
 	}
+	// GetTasksResponse ...
 	GetTasksResponse struct {
 		Count int     `json:"count"`
 		Tasks []*Task `json:"tasks"`
@@ -41,17 +42,38 @@ func (task *Task) MarshalJSON() ([]byte, error) {
 	if task == nil {
 		return nil, nil
 	}
-	task.Created = task.CreatedAt.Unix()
-	return json.Marshal(*task)
+	type TransactionAlias Task
+
+	aliasValue := &struct {
+		*TransactionAlias
+		Created int64 `json:"created-at"`
+	}{
+		// задаём указатель на целевой объект
+		TransactionAlias: (*TransactionAlias)(task),
+		Created:          task.CreatedAt.Unix(),
+		// вызываем стандартный Unmarshal
+	}
+
+	return json.Marshal(aliasValue)
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
 // That gives developer flexibility to not thing about correct time layout passed into.
 func (task *Task) UnmarshalJSON(data []byte) (err error) {
-	if err = json.Unmarshal(data, task); err != nil {
+	if task == nil {
+		return nil
+	}
+	type TaskAlias Task
+	alias := &struct {
+		*TaskAlias
+		Created int64 `json:"created-at"`
+	}{
+		TaskAlias: (*TaskAlias)(task),
+	}
+	if err = json.Unmarshal(data, alias); err != nil {
 		return err
 	}
 
-	task.CreatedAt = time.Unix(task.Created, 0)
+	task.CreatedAt = time.Unix(alias.Created, 0)
 	return nil
 }

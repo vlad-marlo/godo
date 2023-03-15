@@ -23,6 +23,28 @@ var (
 		Description: "test description",
 		CreatedAt:   time.Now(),
 	}
+	TestTask1 = &model.Task{
+		ID:          uuid.New(),
+		Name:        uuid.NewString(),
+		Description: uuid.NewString(),
+		CreatedAt:   time.Now(),
+		CreatedBy:   TestUser1.ID,
+		Status:      uuid.NewString(),
+	}
+	ReadOnlyRole = &model.Role{
+		ID:       0,
+		Members:  model.PermReadRelated,
+		Tasks:    model.PermReadRelated,
+		Reviews:  model.PermReadRelated,
+		Comments: model.PermReadRelated,
+	}
+	SudoRole = &model.Role{
+		ID:       0,
+		Members:  model.PermChangeAll,
+		Tasks:    model.PermChangeAll,
+		Reviews:  model.PermChangeAll,
+		Comments: model.PermChangeAll,
+	}
 )
 
 func testService(t testing.TB, s store.Store) *Service {

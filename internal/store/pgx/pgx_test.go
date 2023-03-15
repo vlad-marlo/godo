@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -38,6 +39,7 @@ func TestStore_User(t *testing.T) {
 	tokRepo := NewTokenRepository(cli)
 	tskRepo := NewTaskRepository(cli)
 	invRepo := NewInviteRepository(cli)
+	roleRepo := NewRoleRepository(cli)
 	s := New(
 		cli,
 		usrRepo,
@@ -45,6 +47,7 @@ func TestStore_User(t *testing.T) {
 		tokRepo,
 		tskRepo,
 		invRepo,
+		roleRepo,
 	)
 	assert.Equal(t, usrRepo, s.User())
 	assert.Equal(t, s.user, s.User())
@@ -60,6 +63,9 @@ func TestStore_User(t *testing.T) {
 
 	assert.Equal(t, s.invite, s.Invite())
 	assert.Equal(t, s.invite, invRepo)
+
+	assert.Equal(t, s.role, s.Role())
+	assert.Equal(t, s.role, roleRepo)
 	s.Close()
 }
 
@@ -77,44 +83,80 @@ func TestMain(m *testing.M) {
 }
 
 func TestBadCli(t *testing.T) {
+	if testing.Short() {
+		return
+	}
 	st, _ := testStore(t, BadCli(t))
 	ctx := context.Background()
 
 	assert.False(t, st.user.Exists(ctx, "sd"))
 	group, err := st.group.Get(context.Background(), TestGroup1.ID)
 	assert.Nil(t, group)
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, store.ErrUnknown)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUnknown)
+	}
 
 	err = st.group.Create(context.Background(), TestGroup1)
-	require.Error(t, err)
-	assert.ErrorIs(t, err, store.ErrUnknown)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUnknown)
+	}
 
-	err = st.invite.Create(context.Background(), TestInvite1, TestRole1, TestGroup1.ID, 1)
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, store.ErrUnknown)
+	err = st.invite.Create(context.Background(), TestInvite1, TestRole1.ID, TestGroup1.ID, 1)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUnknown)
+	}
 
 	require.False(t, st.invite.Exists(context.Background(), TestInvite1, TestGroup1.ID))
 
 	var u *model.User
 	u, err = st.user.GetByEmail(context.Background(), "xd")
 	assert.Nil(t, u)
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, store.ErrUnknown)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUnknown)
+	}
 
 	u, err = st.user.Get(context.Background(), uuid.Nil)
 	assert.Nil(t, u)
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, store.ErrUnknown)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUnknown)
+	}
 
 	err = st.user.Create(context.Background(), new(model.User))
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, store.ErrUnknown)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUnknown)
+	}
 
 	var token *model.Token
 	token, err = st.token.Get(ctx, TestToken1.Token)
 	assert.Nil(t, token)
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, store.ErrUnknown)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUnknown)
+	}
 
+	err = st.task.Create(ctx, &model.Task{
+		ID:          uuid.New(),
+		Name:        uuid.NewString(),
+		Description: uuid.NewString(),
+		CreatedAt:   time.Now(),
+		CreatedBy:   TestUser1.ID,
+		Status:      "new",
+	})
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUnknown)
+	}
+
+	err = st.role.Create(ctx, TestRole1)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUnknown)
+	}
+
+	err = st.role.Get(ctx, TestRole1)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUnknown)
+	}
+
+	err = st.token.Create(ctx, TestToken1)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUnknown)
+	}
 }

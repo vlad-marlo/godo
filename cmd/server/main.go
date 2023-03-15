@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/vlad-marlo/godo/internal/config"
 	"github.com/vlad-marlo/godo/internal/controller/grpc"
 	httpctrl "github.com/vlad-marlo/godo/internal/controller/http"
@@ -13,7 +14,6 @@ import (
 	"github.com/vlad-marlo/godo/internal/store"
 	"github.com/vlad-marlo/godo/internal/store/pgx"
 	"go.uber.org/fx"
-	"go.uber.org/fx/fxevent"
 	"go.uber.org/zap"
 )
 
@@ -29,7 +29,7 @@ import (
 
 //	@securityDefinitions.basic	BasicAuth on
 
-//	@externalDocs.description	OpenAPI
+// @externalDocs.description	OpenAPI
 func main() {
 	fx.New(CreateApp()).Run()
 }
@@ -59,9 +59,9 @@ func CreateApp() fx.Option {
 			pgx.NewTokenRepository,
 			pgx.NewTaskRepository,
 			pgx.NewInviteRepository,
+			pgx.NewRoleRepository,
 			httpctrl.New,
 		),
-		//fx.WithLogger(ZapEventLogger),
 		fx.Invoke(
 			CreateLogger,
 			ValidateConfig,
@@ -80,11 +80,6 @@ func CreateLogger() error {
 	}
 	zap.ReplaceGlobals(log)
 	return nil
-}
-
-// _ return new event logger for fx application.
-func _(logger *zap.Logger) fxevent.Logger {
-	return &fxevent.ZapLogger{Logger: logger}
 }
 
 // StartHTTPServer is starting http server if must.
@@ -111,8 +106,13 @@ func StartGRPCServer(lc fx.Lifecycle, h *grpc.Server, cfg *config.Config) {
 
 // ValidateConfig checks if config valid and if not logs recommendations to configure application.
 func ValidateConfig(cfg *config.Config, log *zap.Logger) error {
-	if ok, err := cfg.Valid(); err != nil || !ok {
+	ok, err := cfg.Valid()
+	if err != nil {
 		log.Error("config is not valid", zap.Bool("ok", ok), zap.Error(err))
+		return fmt.Errorf("config: validate: %w", err)
+	}
+
+	if !ok {
 		return errors.New("bad config")
 	}
 	return nil

@@ -2,13 +2,10 @@ package pgx
 
 import (
 	"context"
-	"errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/vlad-marlo/godo/internal/model"
 	"github.com/vlad-marlo/godo/internal/store"
 	"go.uber.org/zap"
 )
@@ -29,27 +26,7 @@ func NewInviteRepository(cli Client) *InviteRepository {
 }
 
 // Create stores invite with provided data.
-func (repo *InviteRepository) Create(ctx context.Context, invite uuid.UUID, r *model.Role, group uuid.UUID, uses int) error {
-	if _, err := repo.pool.Exec(
-		ctx,
-		`INSERT INTO roles(members, tasks, reviews, "comments")
-VALUES ($1, $2, $3, $4)
-ON CONFLICT DO NOTHING`,
-		r.Members,
-		r.Tasks,
-		r.Reviews,
-		r.Comments,
-	); err != nil {
-		repo.log.Log(_unknownLevel, "create role", TraceError(err)...)
-		return Unknown(err)
-	}
-	if err := repo.pool.QueryRow(ctx, `SELECT id FROM roles WHERE members = $1 AND tasks = $2 AND reviews = $3 AND "comments" = $4;`, r.Members, r.Tasks, r.Reviews, r.Comments).Scan(&r.ID); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return store.ErrNotFound
-		}
-		repo.log.Log(_unknownLevel, "get role id", TraceError(err)...)
-		return Unknown(err)
-	}
+func (repo *InviteRepository) Create(ctx context.Context, invite uuid.UUID, role int32, group uuid.UUID, uses int) error {
 
 	if _, err := repo.pool.Exec(
 		ctx,
@@ -57,7 +34,7 @@ ON CONFLICT DO NOTHING`,
 VALUES ($1, $2, $3, $4);`,
 		invite,
 		group,
-		r.ID,
+		role,
 		uses,
 	); err != nil {
 
@@ -72,8 +49,8 @@ VALUES ($1, $2, $3, $4);`,
 				return store.ErrBadData
 			}
 		}
-		repo.log.Warn("unknown error while creating invite link", TraceError(err)...)
-		return Unknown(err)
+		repo.log.Warn("unknown error while creating invite link", traceError(err)...)
+		return unknown(err)
 	}
 
 	return nil
@@ -87,7 +64,7 @@ func (repo *InviteRepository) Exists(ctx context.Context, invite, group uuid.UUI
 		invite,
 		group,
 	).Scan(&ok); err != nil {
-		repo.log.Warn("unknown error while getting", TraceError(err)...)
+		repo.log.Warn("unknown error while getting", traceError(err)...)
 	}
 	return ok
 }
@@ -96,8 +73,8 @@ func (repo *InviteRepository) Exists(ctx context.Context, invite, group uuid.UUI
 func (repo *InviteRepository) Use(ctx context.Context, invite uuid.UUID, user uuid.UUID) error {
 	tx, err := repo.pool.Begin(ctx)
 	if err != nil {
-		repo.log.Error("unexpected error received while starting new transaction: check drivers", TraceError(err)...)
-		return Unknown(err)
+		repo.log.Error("unexpected error received while starting new transaction: check drivers", traceError(err)...)
+		return unknown(err)
 	}
 	defer func() {
 		_ = tx.Rollback(ctx)
@@ -139,15 +116,15 @@ func (repo *InviteRepository) Use(ctx context.Context, invite uuid.UUID, user uu
 				return store.ErrInviteIsAlreadyUsed
 			}
 
-			repo.log.Error("add user to group", TraceError(err)...)
+			repo.log.Error("add user to group", traceError(err)...)
 		}
 
-		return Unknown(err)
+		return unknown(err)
 	}
 
 	if err = tx.Commit(ctx); err != nil {
-		repo.log.Error("unexpected error while doing commit transaction: check pgx driver", TraceError(err)...)
-		return Unknown(err)
+		repo.log.Error("unexpected error while doing commit transaction: check pgx driver", traceError(err)...)
+		return unknown(err)
 	}
 
 	return nil

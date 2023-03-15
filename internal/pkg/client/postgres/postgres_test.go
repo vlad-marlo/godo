@@ -1,6 +1,11 @@
 package postgres
 
 import (
+	"fmt"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
+	"github.com/vlad-marlo/godo/internal/config"
+	"go.uber.org/fx/fxtest"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -15,6 +20,7 @@ func TestClient_L_NotNil(t *testing.T) {
 	assert.Equal(t, cli.logger, cli.L())
 }
 
+//goland:noinspection GoNilness
 func TestClient_L_Nil(t *testing.T) {
 	var cli *Client
 	assert.Equal(t, zap.NewNop(), cli.L())
@@ -27,6 +33,7 @@ func TestClient_P_NotNil(t *testing.T) {
 	assert.Equal(t, cli.pool, cli.P())
 }
 
+//goland:noinspection ALL
 func TestClient_P_Nil(t *testing.T) {
 	var cli *Client
 	assert.Nil(t, cli.P())
@@ -70,4 +77,22 @@ func TestClient_Close(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestNew(t *testing.T) {
+	log := zap.L()
+
+	lc := fxtest.NewLifecycle(t)
+
+	cfg := config.New()
+	cfg.Postgres = config.Postgres{URI: "postgresql://l:l@l:l/l"}
+
+	cli, err := New(lc, log, cfg)
+	require.Error(t, err)
+	require.Nil(t, cli)
+
+	cfg.Postgres.URI = fmt.Sprintf("postgresql://%s:%s@%s:5432/%s", uuid.NewString(), uuid.NewString(), uuid.NewString(), uuid.NewString())
+	cli, err = New(lc, log, cfg)
+	assert.NoError(t, err)
+	assert.NotNil(t, cli)
 }

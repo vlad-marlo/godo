@@ -11,13 +11,16 @@ import (
 	"time"
 )
 
+// GetUserTasks return tasks related to user with provided id.
 func (s *Service) GetUserTasks(ctx context.Context, user uuid.UUID) (*model.GetTasksResponse, error) {
 	tasks, err := s.store.Task().AllByUser(ctx, user)
 	if err != nil {
-		if errors.Is(err, store.ErrNotFound) {
-			return nil, service.ErrNotFound.With(zap.Error(err))
+		switch {
+		case errors.Is(err, store.ErrNotFound):
+			return nil, service.ErrNoContent.With(zap.Error(err))
+		default:
+			return nil, service.ErrInternal.With(zap.Error(err))
 		}
-		return nil, service.ErrInternal.With(zap.Error(err))
 	}
 
 	return &model.GetTasksResponse{
@@ -26,14 +29,21 @@ func (s *Service) GetUserTasks(ctx context.Context, user uuid.UUID) (*model.GetT
 	}, nil
 }
 
+// GetTask return task by user and task id.
 func (s *Service) GetTask(ctx context.Context, user, task uuid.UUID) (*model.Task, error) {
 	t, err := s.store.Task().GetByUserAndID(ctx, user, task)
 	if err != nil {
-		if errors.Is(err, store.ErrNotFound) {
+		switch {
+
+		case errors.Is(err, store.ErrNotFound):
 			return nil, service.ErrNotFound
+
+		default:
+			return nil, service.ErrInternal.With(zap.Error(err))
+
 		}
-		return nil, service.ErrInternal.With(zap.Error(err))
 	}
+
 	return t, nil
 }
 
@@ -49,7 +59,7 @@ func (s *Service) addTaskToGroup(ctx context.Context, user, task, group uuid.UUI
 		s.log.Warn("error while getting role of member", zap.Error(err))
 		return
 	}
-	if r.Tasks >= 2 {
+	if r.Tasks >= model.PermCreate {
 		if err = s.store.Task().AddToGroup(ctx, task, user); err != nil {
 			s.log.Warn("error while adding task to group", zap.Error(err))
 		}
@@ -58,7 +68,31 @@ func (s *Service) addTaskToGroup(ctx context.Context, user, task, group uuid.UUI
 
 func (s *Service) addToUsers(ctx context.Context, user, task uuid.UUID, users []uuid.UUID) {
 	for p, u := range users {
-		go s.addTaskToUser(ctx, user, task, u, p)
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			go s.addTaskToUser(ctx, user, task, u, p)
+		}
+	}
+}
+
+func (s *Service) addToGroupUsers(ctx context.Context, group, task uuid.UUID) {
+	ids, err := s.store.Group().GetUserIDs(ctx, group)
+	if err != nil {
+		s.log.Error("service: add to group users: store: group: get user ids", zap.Error(err))
+		return
+	}
+
+	for p, u := range ids {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			if err = s.store.Task().ForceAddToUser(ctx, u, task); err != nil {
+				s.log.Error("add task to user", zap.Error(err), zap.Int("pool", p))
+			}
+		}
 	}
 }
 
@@ -70,19 +104,32 @@ func (s *Service) CreateTask(ctx context.Context, user uuid.UUID, req model.Task
 		Description: req.Description,
 		CreatedAt:   time.Now(),
 		CreatedBy:   user,
-		Created:     0,
 		Status:      "NEW",
 	}
+
 	if err := s.store.Task().Create(ctx, task); err != nil {
-		if errors.Is(err, store.ErrNotFound) {
-			return nil, service.ErrNotFound
+		switch {
+		case errors.Is(err, store.ErrUniqueViolation):
+			return nil, service.ErrTaskAlreadyExists
+
+		case errors.Is(err, store.ErrFKViolation):
+			return nil, service.ErrBadData
+
+		default:
+			return nil, service.ErrInternal.With(zap.Error(err))
 		}
-		return nil, service.ErrInternal.With(zap.Error(err))
 	}
 
 	// async add task to group and users
-	go s.addTaskToGroup(ctx, user, task.ID, req.Group)
-	go s.addToUsers(ctx, user, task.ID, req.Users)
+	if req.Group != nil {
+		go s.addTaskToGroup(context.Background(), user, task.ID, *req.Group)
+		if req.Users == nil {
+			go s.addToGroupUsers(context.Background(), *req.Group, task.ID)
+		}
+	}
+	if req.Users != nil {
+		go s.addToUsers(context.Background(), user, task.ID, req.Users)
+	}
 
 	return task, nil
 }

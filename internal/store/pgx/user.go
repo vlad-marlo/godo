@@ -3,7 +3,6 @@ package pgx
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
@@ -36,7 +35,7 @@ func (repo *UserRepository) Create(
 	u *model.User,
 ) error {
 	if u == nil {
-		return store.ErrBadData
+		return store.ErrNilReference
 	}
 
 	if _, err := repo.pool.Exec(
@@ -46,13 +45,15 @@ func (repo *UserRepository) Create(
 		u.Email,
 		u.Pass,
 	); err != nil {
-		if pgErr, ok := err.(*pgconn.PgError); ok {
-			if pgErr.Code == pgerrcode.UniqueViolation {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.UniqueViolation:
 				return store.ErrUserAlreadyExists
 			}
 		}
-		repo.log.Warn("unknown error while creating new user", TraceError(err)...)
-		return fmt.Errorf("%s: %w", err.Error(), store.ErrUnknown)
+		//repo.log.Warn("unknown error while creating new user", TraceError(err)...)
+		return unknown(err)
 	}
 
 	return nil
@@ -89,7 +90,7 @@ func (repo *UserRepository) GetByEmail(
 			return nil, store.ErrNotFound
 		}
 
-		repo.log.Debug("unknown error while getting user by email", TraceError(err)...)
+		repo.log.Debug("unknown error while getting user by email", traceError(err)...)
 		return nil, store.ErrUnknown
 	}
 
@@ -104,8 +105,45 @@ func (repo *UserRepository) Get(ctx context.Context, id uuid.UUID) (u *model.Use
 			return nil, store.ErrNotFound
 		}
 
-		repo.log.Debug("unknown error while getting user by id", TraceError(err)...)
-		return nil, Unknown(err)
+		repo.log.Debug("unknown error while getting user by id", traceError(err)...)
+		return nil, unknown(err)
 	}
 	return u, nil
+}
+
+// AddToGroup ...
+func (repo *UserRepository) AddToGroup(ctx context.Context, user, group uuid.UUID, r *model.Role, isAdmin bool) error {
+	if _, err := repo.pool.Exec(
+		ctx,
+		`INSERT INTO user_in_group(user_id, group_id, is_admin, role_id)
+SELECT $1, $2, $3, r.id
+FROM roles r
+WHERE r.members = $4
+  AND r.tasks = $5
+  AND r.reviews = $6
+  AND r.comments = $7;`,
+		user,
+		group,
+		isAdmin,
+		r.Members,
+		r.Tasks,
+		r.Reviews,
+		r.Comments,
+	); err != nil {
+
+		if pgErr, ok := err.(*pgconn.PgError); ok {
+			switch pgErr.Code {
+
+			case pgerrcode.UniqueViolation:
+				return store.ErrUniqueViolation
+
+			case pgerrcode.ForeignKeyViolation, pgerrcode.InvalidForeignKey:
+				return store.ErrFKViolation
+			}
+		}
+
+		return unknown(err)
+	}
+
+	return nil
 }

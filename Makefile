@@ -5,17 +5,23 @@ build:
 .PHONY: t
 t:
 	go generate ./...
-	tern migrate -c migrations/tern.conf -m migrations --database godo_test
-	go test --v ./... --count=1  -coverpkg=./internal/... -coverprofile=coverage.out
+	tern migrate --config migrations/tern.conf --migrations migrations --database godo_test
+	go test --v ./... --coverpkg=./internal/... --coverprofile=coverage.out --test.short=true
+
+.PHONY: test
+test:
+	go generate ./...
+	tern migrate --config migrations/tern.conf --migrations migrations --database godo_test
+	go test --v ./... --coverpkg=./internal/... --coverprofile=coverage.out
 
 .PHONY: c
 c:
-	go tool cover -func coverage.out
+	go tool cover --func coverage.out
 
 .PHONY: gen
 gen:
 	swag fmt
-	swag init -d cmd/server/,internal/controller/http/,internal/model/
+	swag init --d cmd/server/,internal/controller/http/,internal/model/
 	go generate ./...
 	protoc --go_out=. --go_opt=paths=import \
       --go-grpc_out=. --go-grpc_opt=paths=import \
@@ -23,11 +29,11 @@ gen:
 
 .PHONY: migrate
 migrate:
-	tern migrate -c migrations/tern.conf -m migrations
+	tern migrate --c migrations/tern.conf --m migrations
 
 .PHONY: tm
 tm:
-	tern migrate -c migrations/tern.conf -m migrations --database godo_test
+	tern migrate --c migrations/tern.conf --m migrations --database godo_test
 
 .PHONY: lines
 lines:
@@ -42,9 +48,9 @@ dock:
 .PHONY: run
 run:
 	docker build . --file=infra/httpserver.dockerfile --tag="marlooooo/godo_backend:http-latest"
-	docker compose --file=infra/docker-compose.yml up -d
+	docker compose --file=infra/docker-compose.yml up --d
 
 .PHONY: push
 push:
-	docker push "marlooooo/godo_backend" -a
+	docker push "marlooooo/godo_backend" --a
 .DEFAULT_GOAL := build

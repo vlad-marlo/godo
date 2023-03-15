@@ -1,4 +1,3 @@
-//go:generate mockgen --source=server.go --destination=mocks/service.go --package=mocks
 package httpctrl
 
 import (
@@ -8,6 +7,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	httpSwagger "github.com/swaggo/http-swagger"
+	"github.com/vlad-marlo/godo/internal/pkg/fielderr"
 	"go.uber.org/zap/zapcore"
 	"net"
 	"net/http"
@@ -222,4 +222,14 @@ func (s *Server) respond(w http.ResponseWriter, code int, data interface{}, fiel
 // internal is helper function to call respond with s.respond(w, http.StatusInternalServerError, nil, fields...)
 func (s *Server) internal(w http.ResponseWriter, fields ...zap.Field) {
 	s.respond(w, http.StatusInternalServerError, nil, fields...)
+}
+
+// handleErr handles error from service. If error is fielderr then adds correct data.
+func (s *Server) handleErr(w http.ResponseWriter, err error, fields ...zap.Field) {
+	var fErr *fielderr.Error
+	if errors.As(err, &fErr) {
+		s.respond(w, fErr.CodeHTTP(), fErr.Data(), append(fErr.Fields(), fields...)...)
+		return
+	}
+	s.internal(w, append(fields, zap.Error(err))...)
 }

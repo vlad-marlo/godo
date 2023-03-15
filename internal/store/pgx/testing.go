@@ -104,6 +104,16 @@ var (
 		Reviews:  2,
 		Comments: 1,
 	}
+
+	// TEST TASKS //
+	TestTask1 = &model.Task{
+		ID:          uuid.New(),
+		Name:        uuid.NewString(),
+		Description: uuid.NewString(),
+		CreatedAt:   time.Now(),
+		CreatedBy:   TestUser1.ID,
+		Status:      "NEW",
+	}
 )
 
 // testStore ...
@@ -119,6 +129,7 @@ func testStore(t testing.TB, cli Client) (*Store, func()) {
 		NewTokenRepository(cli),
 		NewTaskRepository(cli),
 		NewInviteRepository(cli),
+		NewRoleRepository(cli),
 	)
 	return s, func() { teardown(t, cli)(_dbTables...) }
 }
@@ -176,6 +187,7 @@ func teardown(t testing.TB, cli Client) func(...string) {
 
 // BadCli return client that has pool that not connected to real database.
 func BadCli(t testing.TB) Client {
+	t.Helper()
 	ctrl := gomock.NewController(t)
 	cli := mocks.NewMockClient(ctrl)
 	cli.EXPECT().L().Return(zap.L()).AnyTimes()

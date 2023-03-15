@@ -13,6 +13,7 @@ const (
 	CodeUnauthorized
 	CodeConflict
 	CodeForbidden
+	CodeNoContent
 )
 
 var httpCodes = map[int]int{
@@ -22,6 +23,7 @@ var httpCodes = map[int]int{
 	CodeUnauthorized: http.StatusUnauthorized,
 	CodeForbidden:    http.StatusForbidden,
 	CodeConflict:     http.StatusConflict,
+	CodeNoContent:    http.StatusNoContent,
 }
 
 var grpcCodes = map[int]codes.Code{
@@ -31,4 +33,5 @@ var grpcCodes = map[int]codes.Code{
 	CodeConflict:     codes.InvalidArgument,
 	CodeNotFound:     codes.NotFound,
 	CodeForbidden:    codes.PermissionDenied,
+	CodeNoContent:    codes.OK,
 }

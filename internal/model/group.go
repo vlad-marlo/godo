@@ -1,12 +1,13 @@
 package model
 
 import (
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type (
-	// Group ...
+	// Group is abstract view of group.
 	Group struct {
 		ID          uuid.UUID
 		Name        string
@@ -35,7 +36,7 @@ type (
 		// CreatedAt is creation time in UNIX format
 		CreatedAt int64 `json:"created-at"`
 	}
-	// GroupInUser is short info about group
+	// GroupInUser is short info about group.
 	GroupInUser struct {
 		ID          uuid.UUID `json:"id"`
 		Name        string    `json:"name"`
