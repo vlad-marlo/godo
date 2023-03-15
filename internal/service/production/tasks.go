@@ -122,13 +122,13 @@ func (s *Service) CreateTask(ctx context.Context, user uuid.UUID, req model.Task
 
 	// async add task to group and users
 	if req.Group != nil {
-		go s.addTaskToGroup(ctx, user, task.ID, *req.Group)
+		go s.addTaskToGroup(context.Background(), user, task.ID, *req.Group)
 		if req.Users == nil {
-			go s.addToGroupUsers(ctx, *req.Group, task.ID)
+			go s.addToGroupUsers(context.Background(), *req.Group, task.ID)
 		}
 	}
 	if req.Users != nil {
-		go s.addToUsers(ctx, user, task.ID, req.Users)
+		go s.addToUsers(context.Background(), user, task.ID, req.Users)
 	}
 
 	return task, nil
