@@ -195,20 +195,17 @@ func (repo *GroupRepository) TaskExists(ctx context.Context, group, task uuid.UU
 	return
 }
 
-func (repo *GroupRepository) GetRoleID(ctx context.Context, role *model.Role) (id int64, err error) {
-	if err = repo.pool.QueryRow(
+// AddUser adds user to group.
+func (repo *GroupRepository) AddUser(ctx context.Context, roleID int32, groupID, userID uuid.UUID, isAdmin bool) error {
+	if _, err := repo.pool.Exec(
 		ctx,
-		`SELECT id FROM roles WHERE members = $1 AND "comments" = $2 AND reviews = $3 AND tasks = $4;`,
-		role.Members,
-		role.Comments,
-		role.Reviews,
-		role.Tasks,
-	).Scan(&id); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-
-		}
-		repo.log.Log(_unknownLevel, "store: group: get role id", traceError(err)...)
-		return 0, unknown(err)
+		`INSERT INTO user_in_group(user_id, group_id, role_id, is_admin) VALUES ($1, $2, $3, $4);`,
+		userID,
+		groupID,
+		roleID,
+		isAdmin,
+	); err != nil {
+		return pgError("store: group: add user to group", err)
 	}
-	return id, nil
+	return nil
 }

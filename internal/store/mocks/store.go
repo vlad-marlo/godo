@@ -118,6 +118,20 @@ func (m *MockGroupRepository) EXPECT() *MockGroupRepositoryMockRecorder {
 	return m.recorder
 }
 
+// AddUser mocks base method.
+func (m *MockGroupRepository) AddUser(ctx context.Context, roleID int32, groupID, userID uuid.UUID, isAdmin bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddUser", ctx, roleID, groupID, userID, isAdmin)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddUser indicates an expected call of AddUser.
+func (mr *MockGroupRepositoryMockRecorder) AddUser(ctx, roleID, groupID, userID, isAdmin interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddUser", reflect.TypeOf((*MockGroupRepository)(nil).AddUser), ctx, roleID, groupID, userID, isAdmin)
+}
+
 // Create mocks base method.
 func (m *MockGroupRepository) Create(ctx context.Context, group *model.Group) error {
 	m.ctrl.T.Helper()

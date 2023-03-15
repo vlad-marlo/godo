@@ -29,6 +29,7 @@ type GroupRepository interface {
 	// GetRoleOfMember return role of member in group.
 	GetRoleOfMember(ctx context.Context, user, group uuid.UUID) (role *model.Role, err error)
 	GetUserIDs(ctx context.Context, group uuid.UUID) ([]uuid.UUID, error)
+	AddUser(ctx context.Context, roleID int32, groupID, userID uuid.UUID, isAdmin bool) error
 }
 
 // TokenRepository is accessor to storing tokens.

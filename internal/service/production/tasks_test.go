@@ -211,3 +211,79 @@ func TestService_AddTaskToUser(t *testing.T) {
 func TestService_AddTaskToUsers(t *testing.T) {
 
 }
+
+func TestService_AddTaskToGroup_Negative_NoPermission(t *testing.T) {
+	role := &model.Role{
+		ID:       0,
+		Members:  model.PermCreate,
+		Tasks:    model.PermReadRelated,
+		Reviews:  model.PermChangeRelated,
+		Comments: model.PermChangeAll,
+	}
+	ctrl := gomock.NewController(t)
+	groupRepo := mocks.NewMockGroupRepository(ctrl)
+	groupRepo.EXPECT().GetRoleOfMember(gomock.Any(), uuid.Nil, uuid.Nil).Return(role, nil)
+	str := mocks.NewMockStore(ctrl)
+	str.EXPECT().Group().Return(groupRepo)
+	s := testService(t, str)
+	s.addTaskToGroup(context.Background(), uuid.Nil, uuid.Nil, uuid.Nil)
+}
+
+func TestService_AddTaskToGroup_Positive(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	role := &model.Role{
+		ID:       0,
+		Members:  model.PermCreate,
+		Tasks:    model.PermChangeAll,
+		Reviews:  model.PermChangeRelated,
+		Comments: model.PermChangeAll,
+	}
+
+	str := mocks.NewMockStore(ctrl)
+	taskRepo := mocks.NewMockTaskRepository(ctrl)
+	groupRepo := mocks.NewMockGroupRepository(ctrl)
+
+	groupRepo.EXPECT().GetRoleOfMember(gomock.Any(), uuid.Nil, uuid.Nil).Return(role, nil)
+	taskRepo.EXPECT().AddToGroup(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+	str.EXPECT().Group().Return(groupRepo)
+	str.EXPECT().Task().Return(taskRepo)
+
+	s := testService(t, str)
+	s.addTaskToGroup(context.Background(), uuid.Nil, uuid.Nil, uuid.Nil)
+}
+
+func TestService_AddTaskToGroup_Negative_ErrWhileAdding(t *testing.T) {
+	role := &model.Role{
+		ID:       0,
+		Members:  model.PermCreate,
+		Tasks:    model.PermChangeAll,
+		Reviews:  model.PermChangeRelated,
+		Comments: model.PermChangeAll,
+	}
+	ctrl := gomock.NewController(t)
+	groupRepo := mocks.NewMockGroupRepository(ctrl)
+	groupRepo.EXPECT().GetRoleOfMember(gomock.Any(), uuid.Nil, uuid.Nil).Return(role, nil)
+	taskRepo := mocks.NewMockTaskRepository(ctrl)
+	taskRepo.EXPECT().AddToGroup(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(""))
+	str := mocks.NewMockStore(ctrl)
+	str.EXPECT().Group().Return(groupRepo)
+	str.EXPECT().Task().Return(taskRepo)
+	s := testService(t, str)
+	s.addTaskToGroup(context.Background(), uuid.Nil, uuid.Nil, uuid.Nil)
+}
+
+func TestService_AddTaskToGroup_Negative_ErrWhileGettingRole(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	str := mocks.NewMockStore(ctrl)
+	groupRepo := mocks.NewMockGroupRepository(ctrl)
+
+	groupRepo.EXPECT().GetRoleOfMember(gomock.Any(), uuid.Nil, uuid.Nil).Return(nil, errors.New(""))
+
+	str.EXPECT().Group().Return(groupRepo)
+
+	s := testService(t, str)
+	s.addTaskToGroup(context.Background(), uuid.Nil, uuid.Nil, uuid.Nil)
+}

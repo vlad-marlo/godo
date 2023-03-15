@@ -71,6 +71,9 @@ func (s *Service) CreateInvite(ctx context.Context, user uuid.UUID, group uuid.U
 	if limit <= 0 {
 		return nil, service.ErrBadInviteLimit
 	}
+	if role == nil {
+		return nil, service.ErrBadData
+	}
 	userRole, err := s.store.Group().GetRoleOfMember(ctx, user, group)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
@@ -85,20 +88,16 @@ func (s *Service) CreateInvite(ctx context.Context, user uuid.UUID, group uuid.U
 
 	invite := uuid.New()
 
-	s.store.Group()
-
 	if err = s.store.Role().Get(ctx, role); err != nil {
 		return nil, service.ErrInternal.With(zap.Error(err))
 	}
 
 	if err = s.store.Invite().Create(ctx, invite, role.ID, group, limit); err != nil {
-
-		switch errors.Unwrap(err) {
-
-		case store.ErrUniqueViolation:
+		switch {
+		case errors.Is(err, store.ErrUniqueViolation):
 			return nil, service.ErrConflict
 
-		case store.ErrFKViolation:
+		case errors.Is(err, store.ErrFKViolation):
 			return nil, service.ErrBadData
 
 		default:
@@ -128,8 +127,6 @@ func (s *Service) GetMe(ctx context.Context, user uuid.UUID) (*model.GetMeRespon
 		switch {
 		case errors.Is(err, store.ErrNotFound):
 			return nil, service.ErrUserNotFound
-		case errors.Is(err, store.ErrUnknown):
-			return nil, service.ErrInternal.With(zap.Error(err))
 		default:
 		}
 		return nil, service.ErrInternal.With(zap.Error(err))
@@ -146,10 +143,10 @@ func (s *Service) GetMe(ctx context.Context, user uuid.UUID) (*model.GetMeRespon
 	if err != nil {
 		switch {
 		case errors.Is(err, store.ErrNotFound):
-			return nil, service.ErrNotFound
+			return res, nil
 		default:
+			return nil, service.ErrInternal.With(zap.Error(err))
 		}
-		return nil, service.ErrInternal.With(zap.Error(err))
 	}
 
 	for _, group := range groups {
@@ -157,10 +154,9 @@ func (s *Service) GetMe(ctx context.Context, user uuid.UUID) (*model.GetMeRespon
 
 		tasks, err = s.store.Task().AllByGroupAndUser(ctx, group.ID, user)
 		if err != nil {
-			if errors.Is(err, store.ErrNotFound) {
-				return nil, service.ErrNotFound
+			if !errors.Is(err, store.ErrNotFound) {
+				return nil, service.ErrInternal.With(zap.Error(err))
 			}
-			return nil, service.ErrInternal.With(zap.Error(err))
 		}
 
 		res.Groups = append(res.Groups, model.GroupInUser{

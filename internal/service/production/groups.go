@@ -33,7 +33,18 @@ func (s *Service) CreateGroup(ctx context.Context, user uuid.UUID, name, descrip
 
 		return nil, service.ErrInternal.With(zap.Error(err))
 	}
-	// TODO: give admin role to user;
+	role := &model.Role{
+		Members:  model.PermChangeAll,
+		Tasks:    model.PermChangeAll,
+		Reviews:  model.PermChangeAll,
+		Comments: model.PermChangeAll,
+	}
+	if err := s.store.Role().Get(ctx, role); err != nil {
+		return nil, service.ErrInternal.With(zap.Error(err), zap.String("at", "role get id"))
+	}
+	if err := s.store.Group().AddUser(ctx, role.ID, grp.ID, user, true); err != nil {
+		return nil, service.ErrInternal.With(zap.Error(err), zap.String("at", "add user to group"))
+	}
 
 	return &model.CreateGroupResponse{
 		ID:          grp.ID,
