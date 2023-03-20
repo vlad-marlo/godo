@@ -1,0 +1,59 @@
+package pgx
+
+import (
+	"context"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/vlad-marlo/godo/internal/pkg/client/postgres"
+	"github.com/vlad-marlo/godo/internal/store"
+	"testing"
+)
+
+func TestInviteRepository_Create(t *testing.T) {
+	ctx := context.Background()
+	st, td := testStore(t, nil)
+	defer td()
+	err := st.invite.Create(ctx, TestInvite1, TestRole1.ID, TestGroup1.ID, 1)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrFKViolation)
+	}
+
+	require.NoError(t, st.user.Create(ctx, TestUser1))
+	require.NoError(t, st.group.Create(ctx, TestGroup1))
+
+	require.NoError(t, st.role.Create(ctx, TestRole1))
+	require.NoError(t, st.invite.Create(ctx, TestInvite1, TestRole1.ID, TestGroup1.ID, 1))
+	err = st.invite.Create(ctx, TestInvite1, TestRole1.ID, TestGroup1.ID, 1)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrUniqueViolation)
+	}
+
+	err = st.invite.Create(ctx, TestInvite2, TestRole1.ID, TestGroup1.ID, -1)
+	if assert.Error(t, err) {
+		assert.ErrorIs(t, err, store.ErrBadData)
+	}
+}
+
+func TestInviteRepository_Create_NilReference(t *testing.T) {
+	ctx := context.Background()
+	st, td := testStore(t, nil)
+	defer td()
+
+	err := st.invite.Create(ctx, TestInvite1, 0, TestGroup1.ID, 1)
+	assert.ErrorIs(t, err, store.ErrFKViolation)
+}
+
+func TestInviteRepository_Exists(t *testing.T) {
+	st, td := testStore(t, postgres.TestClient(t))
+	defer td()
+	ctx := context.Background()
+	assert.NoError(t, st.role.Create(ctx, TestRole1))
+
+	require.False(t, st.invite.Exists(ctx, TestInvite1, TestGroup1.ID))
+	require.NoError(t, st.user.Create(ctx, TestUser1))
+	require.NoError(t, st.group.Create(ctx, TestGroup1))
+	require.NoError(t, st.invite.Create(ctx, TestInvite1, TestRole1.ID, TestGroup1.ID, 1))
+	require.True(t, st.invite.Exists(ctx, TestInvite1, TestGroup1.ID))
+	require.False(t, st.invite.Exists(ctx, TestInvite2, TestGroup1.ID))
+	require.False(t, st.invite.Exists(ctx, TestInvite1, TestGroup2.ID))
+}

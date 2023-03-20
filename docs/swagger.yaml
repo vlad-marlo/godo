@@ -1,0 +1,647 @@
+basePath: /api/v1
+definitions:
+  model.CreateGroupRequest:
+    properties:
+      description:
+        description: |-
+          Description is additional info about group.
+          For example a Company name or any other meta info.
+        type: string
+      name:
+        description: Name must be unique string. Name will be used
+        type: string
+    type: object
+  model.CreateGroupResponse:
+    properties:
+      created-at:
+        description: CreatedAt is creation time in UNIX format
+        type: integer
+      description:
+        description: Description is short info about group.
+        type: string
+      id:
+        description: ID is primary key of group.
+        type: string
+      name:
+        description: Name is unique name of group.
+        type: string
+    type: object
+  model.CreateInviteRequest:
+    properties:
+      comments-permission:
+        example: 4
+        type: integer
+      group:
+        example: 00000000-0000-0000-0000-000000000000
+        type: string
+      limit:
+        example: 2
+        type: integer
+      members-permission:
+        example: 4
+        type: integer
+      reviews-permission:
+        example: 4
+        type: integer
+      tasks-permission:
+        example: 4
+        type: integer
+    type: object
+  model.CreateInviteResponse:
+    properties:
+      invite-link:
+        description: Link is invite link to group.
+        example: http://localhost:8080/api/v1/groups/00000000-0000-0000-0000-000000000000/apply?invite=00000000-0000-0000-0000-000000000000
+        type: string
+      limit:
+        description: Limit is count of available usages of invite link.
+        example: 2
+        type: integer
+    type: object
+  model.CreateInviteViaGroupRequest:
+    properties:
+      comments-permission:
+        description: |-
+          Comment is role of user.
+
+          Permissions:
+          0 - read related;
+          1 - read all;
+          2 - create;
+          3 - update/delete related;
+          4 - update/delete any;
+        example: 4
+        type: integer
+      limit:
+        description: Limit is count of available usages of invite link
+        example: 2
+        type: integer
+      members-permission:
+        description: |-
+          Member is role of user.
+
+          There are permissions:
+          0 - user can affect(read/update) only related objects;
+          1 - user can read all object.
+          2 - user can create new objects (invite users);
+          3 - user can change/delete users who was invited by whose;
+          4 - user can affect all users.
+        example: 4
+        type: integer
+      reviews-permission:
+        description: |-
+          Review is role of user.
+
+          Permissions:
+          0 - read related;
+          1 - read all;
+          2 - create;
+          3 - update/delete related;
+          4 - update/delete any;
+        example: 4
+        type: integer
+      tasks-permission:
+        description: |-
+          Task is role of user.
+
+          Permissions:
+          0 - read related;
+          1 - read all;
+          2 create;
+          3 - update/delete related;
+          4 - delete all;
+        example: 4
+        type: integer
+    type: object
+  model.CreateTokenRequest:
+    properties:
+      email:
+        description: Email is user email
+        example: user@example.com
+        type: string
+      password:
+        description: Password is password of user.
+        example: strong_password
+        type: string
+      token-type:
+        example: bearer
+        type: string
+    type: object
+  model.CreateTokenResponse:
+    properties:
+      access_token:
+        type: string
+      token_type:
+        type: string
+    type: object
+  model.Error:
+    properties:
+      error:
+        example: short summary info about error
+        type: string
+      field:
+        example: additional info about error
+        type: string
+    type: object
+  model.GetMeResponse:
+    properties:
+      email:
+        type: string
+      groups:
+        items:
+          $ref: '#/definitions/model.GroupInUser'
+        type: array
+      id:
+        type: string
+    type: object
+  model.GetTasksResponse:
+    properties:
+      count:
+        type: integer
+      tasks:
+        items:
+          $ref: '#/definitions/model.Task'
+        type: array
+    type: object
+  model.GroupInUser:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      tasks:
+        items:
+          $ref: '#/definitions/model.Task'
+        type: array
+    type: object
+  model.RegisterUserRequest:
+    properties:
+      email:
+        description: Email is user email
+        example: user@example.com
+        type: string
+      password:
+        description: Password is password string
+        example: strong_password
+        type: string
+    type: object
+  model.Task:
+    properties:
+      created-by:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  model.TaskCreateRequest:
+    properties:
+      description:
+        description: Description - is verbose info about task. Could be any string.
+        type: string
+      group:
+        description: Group - optional filed that show group to which task will be
+          related.
+        type: string
+      name:
+        description: Name is name of task.
+        type: string
+      users:
+        description: |-
+          Users - field which relating users to task.
+          If not defined, will create task only for user, who creates this task or for group.
+        items:
+          type: string
+        type: array
+    type: object
+  model.User:
+    properties:
+      email:
+        description: Email is string field of user's email addr.
+        example: user@example.com
+        type: string
+      id:
+        description: ID is user uuid.
+        example: 00000000-0000-0000-0000-000000000000
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    name: API Support
+  description: This is a godo server.
+  title: GODO API
+  version: "1.0"
+paths:
+  /groups/:
+    post:
+      consumes:
+      - application/json
+      operationId: group_create
+      parameters:
+      - description: group data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateGroupRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.CreateGroupResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Error'
+        "401":
+          description: Not Authorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.Error'
+      summary: Создание группы пользователей
+      tags:
+      - Groups
+  /groups/{group_id}/apply:
+    post:
+      consumes:
+      - text/plain
+      operationId: apply_user_to_group
+      parameters:
+      - description: group id
+        in: path
+        name: group_id
+        required: true
+        type: string
+      - description: invite id
+        in: query
+        name: invite
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/model.Error'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.Error'
+      summary: Использование приглашения в группу.
+      tags:
+      - Groups
+  /groups/{group_id}/invite:
+    post:
+      consumes:
+      - application/json
+      operationId: invite_user_groups
+      parameters:
+      - description: invite data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateInviteViaGroupRequest'
+      - description: group id
+        in: path
+        name: group_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.CreateInviteResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/model.Error'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.Error'
+      summary: создание приглашения в группу.
+      tags:
+      - Invites
+      - Groups
+  /invites:
+    post:
+      consumes:
+      - application/json
+      operationId: invite_user
+      parameters:
+      - description: invite data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateInviteRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.CreateInviteResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/model.Error'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.Error'
+      summary: создание приглашения в группу.
+      tags:
+      - Invites
+      - Groups
+  /ping:
+    get:
+      consumes:
+      - text/plain
+      operationId: ping
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Запрос состояния сервиса
+      tags:
+      - Server
+  /tasks:
+    get:
+      consumes:
+      - text/plain
+      operationId: get_tasks
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.GetTasksResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.Error'
+      summary: Get user tasks.
+      tags:
+      - Tasks
+  /tasks/:
+    post:
+      consumes:
+      - application/json
+      operationId: create_task
+      parameters:
+      - description: task
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.TaskCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Task'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/model.Error'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.Error'
+      summary: Create task.
+      tags:
+      - Tasks
+  /tasks/{task_id}:
+    get:
+      consumes:
+      - text/plain
+      operationId: get_task
+      parameters:
+      - description: task id
+        in: path
+        name: task_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Task'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/model.Error'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.Error'
+      summary: Get task by ID.
+      tags:
+      - Tasks
+  /users/me:
+    get:
+      consumes:
+      - text/plain
+      operationId: users_me
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.GetMeResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.Error'
+      summary: Get summary info about user.
+      tags:
+      - Users
+  /users/register:
+    post:
+      consumes:
+      - application/json
+      operationId: user_create
+      parameters:
+      - description: User data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.RegisterUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Error'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.Error'
+      summary: Создание пользователя
+      tags:
+      - User
+  /users/token:
+    post:
+      consumes:
+      - application/json
+      operationId: login_jwt
+      parameters:
+      - description: User data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.CreateTokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.Error'
+      summary: Создание JWT токена для пользователя.
+      tags:
+      - Tokens
+schemes:
+- http
+- https
+securityDefinitions:
+  BasicAuth on:
+    type: basic
+swagger: "2.0"

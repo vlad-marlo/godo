@@ -1,0 +1,22 @@
+volumes:
+  data:
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    env_file:
+      - ./.env
+    ports:
+      - 5432:5432
+    volumes:
+      - data:/var/lib/postgresql
+  backend:
+    image: marlooooo/godo_backend:http-latest
+    restart: always
+    ports:
+      - 8080:8080
+    depends_on:
+      - db
+    env_file:
+      - ./.env

@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package internal;
+
+option go_package = "pkg/proto/api/v1/pb";
+
+// PingRequest is ping request.
+message PingRequest {}
+
+// PingResponse is ping response.
+message PingResponse {}
+
+// CreateUserRequest is request object to create user.
+message CreateUserRequest {
+  string email = 1;
+  string password = 2;
+}
+
+// CreateUserResponse is object to return while something went wrong.
+message CreateUserResponse {
+  string id = 1;
+  string email = 2;
+}
+
+// CreateTokenRequest is request to create token.
+message CreateTokenRequest {
+  string email = 1;
+  string password = 2;
+  string token_type = 3;
+}
+
+// CreateTokenResponse docs.
+message CreateTokenResponse {
+  string type = 1;
+  string token = 2;
+}
+
+// CreateGroupRequest docs.
+message CreateGroupRequest {
+  string name = 1;
+  string description = 2;
+}
+
+// CreateGroupResponse docs.
+message CreateGroupResponse {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  int64 created_at = 4;
+  string error = 5;
+}
+
+// Godo docs.
+service Godo {
+  // Ping docs.
+  rpc Ping(PingRequest) returns (PingResponse);
+  // CreateUser docs.
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+  // CreateToken docs.
+  rpc CreateToken(CreateTokenRequest) returns (CreateTokenResponse);
+  // CreateGroup docs .
+  rpc CreateGroup(CreateGroupRequest) returns (CreateGroupResponse);
+}
