@@ -11,11 +11,12 @@ import (
 	"github.com/vlad-marlo/godo/internal/service"
 	"github.com/vlad-marlo/godo/internal/store"
 	"github.com/vlad-marlo/godo/internal/store/mocks"
+	"sync"
 	"testing"
 	"time"
 )
 
-func TestService_CreateTask_Positive(t *testing.T) {
+func TestService_CreateTask_Negative_Errors(t *testing.T) {
 	tt := []struct {
 		name   string
 		err    error
@@ -81,6 +82,180 @@ func TestService_CreateTask_Negative(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestService_CreateTask_Positive_NoGroup(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	taskRepository := mocks.NewMockTaskRepository(ctrl)
+	vault := mocks.NewMockStore(ctrl)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	req := model.TaskCreateRequest{
+		Name:        uuid.NewString(),
+		Description: uuid.NewString(),
+		Users:       []uuid.UUID{uuid.New(), uuid.New()},
+		Group:       nil,
+	}
+
+	taskRepository.EXPECT().Create(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, task *model.Task) error {
+		assert.Equal(t, req.Name, task.Name)
+		assert.Equal(t, req.Name, task.Name)
+		return nil
+	})
+	taskRepository.
+		EXPECT().
+		AddToUser(
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+		).
+		DoAndReturn(func(ctx context.Context, from, task, to any) error {
+			wg.Done()
+			return nil
+		}).Times(2)
+
+	vault.EXPECT().Task().Return(taskRepository).Times(3)
+
+	s := testService(t, vault)
+	resp, err := s.CreateTask(context.Background(), uuid.Nil, req)
+	require.NoError(t, err)
+	if assert.NotNil(t, resp) {
+		assert.Equal(t, req.Name, resp.Name)
+		assert.Equal(t, req.Description, resp.Description)
+	}
+	wg.Wait()
+}
+
+func TestService_CreateTask_Positive(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	taskRepository := mocks.NewMockTaskRepository(ctrl)
+	groupRepository := mocks.NewMockGroupRepository(ctrl)
+	vault := mocks.NewMockStore(ctrl)
+
+	var wg sync.WaitGroup
+	wg.Add(3)
+
+	req := model.TaskCreateRequest{
+		Name:        uuid.NewString(),
+		Description: uuid.NewString(),
+		Users:       []uuid.UUID{uuid.New(), uuid.New()},
+		Group:       &TestGroup1.ID,
+	}
+
+	taskRepository.
+		EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, task *model.Task) error {
+			assert.Equal(t, req.Name, task.Name)
+			assert.Equal(t, req.Name, task.Name)
+			return nil
+		})
+	taskRepository.
+		EXPECT().
+		AddToGroup(
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+		).
+		DoAndReturn(func(ctx context.Context, task uuid.UUID, group uuid.UUID) error {
+			wg.Done()
+			return nil
+		})
+	taskRepository.
+		EXPECT().
+		AddToUser(
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+		).
+		DoAndReturn(func(ctx, from, task, to any) error {
+			wg.Done()
+			return nil
+		}).Times(2)
+
+	groupRepository.EXPECT().GetRoleOfMember(gomock.Any(), gomock.Any(), gomock.Any()).Return(SudoRole, nil)
+
+	vault.EXPECT().Group().Return(groupRepository)
+	vault.EXPECT().Task().Return(taskRepository).AnyTimes()
+
+	s := testService(t, vault)
+	resp, err := s.CreateTask(context.Background(), uuid.Nil, req)
+	require.NoError(t, err)
+	if assert.NotNil(t, resp) {
+		assert.Equal(t, req.Name, resp.Name)
+		assert.Equal(t, req.Description, resp.Description)
+	}
+	wg.Wait()
+}
+
+func TestService_CreateTask_Positive_NoUsers(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	taskRepository := mocks.NewMockTaskRepository(ctrl)
+	groupRepository := mocks.NewMockGroupRepository(ctrl)
+	vault := mocks.NewMockStore(ctrl)
+
+	var wg sync.WaitGroup
+	wg.Add(3)
+
+	req := model.TaskCreateRequest{
+		Name:        uuid.NewString(),
+		Description: uuid.NewString(),
+		Users:       nil,
+		Group:       &TestGroup1.ID,
+	}
+
+	taskRepository.
+		EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, task *model.Task) error {
+			assert.Equal(t, req.Name, task.Name)
+			assert.Equal(t, req.Name, task.Name)
+			return nil
+		})
+	taskRepository.
+		EXPECT().
+		AddToGroup(
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+		).
+		DoAndReturn(func(ctx context.Context, task uuid.UUID, group uuid.UUID) error {
+			wg.Done()
+			return nil
+		})
+	groupRepository.EXPECT().GetUserIDs(gomock.Any(), TestGroup1.ID).Return([]uuid.UUID{uuid.New(), uuid.New()}, nil)
+	taskRepository.
+		EXPECT().
+		ForceAddToUser(
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+		).
+		DoAndReturn(func(ctx, from, to any) error {
+			wg.Done()
+			return nil
+		}).Times(2)
+
+	groupRepository.EXPECT().GetRoleOfMember(gomock.Any(), gomock.Any(), gomock.Any()).Return(SudoRole, nil)
+
+	vault.EXPECT().Group().Return(groupRepository).AnyTimes()
+	vault.EXPECT().Task().Return(taskRepository).AnyTimes()
+
+	s := testService(t, vault)
+	resp, err := s.CreateTask(context.Background(), uuid.Nil, req)
+	require.NoError(t, err)
+	if assert.NotNil(t, resp) {
+		assert.Equal(t, req.Name, resp.Name)
+		assert.Equal(t, req.Description, resp.Description)
+	}
+	wg.Wait()
 }
 
 func TestService_GetUserTasks_Positive(t *testing.T) {

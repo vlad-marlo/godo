@@ -461,3 +461,9 @@ func TestService_GetMe_Positive(t *testing.T) {
 		assert.Equal(t, expected, resp)
 	}
 }
+
+func TestGenerateRandom(t *testing.T) {
+	s, err := generateRandom(12)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, s)
+}

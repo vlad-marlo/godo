@@ -154,7 +154,7 @@ func (s *Service) createAuthToken(ctx context.Context, u *model.User) (*model.Cr
 		ExpiresAt: now.Add(s.cfg.Auth.AccessTokenLifeTime),
 		Expires:   false,
 	}
-	if err := s.store.Token().Create(ctx, t); err != nil {
+	if err = s.store.Token().Create(ctx, t); err != nil {
 		return nil, service.ErrInternal.With(zap.Error(err))
 	}
 	return &model.CreateTokenResponse{
